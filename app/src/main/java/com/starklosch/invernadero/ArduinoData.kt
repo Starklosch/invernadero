@@ -17,6 +17,13 @@ enum class OperationType(val id: Byte) {
     }
 }
 
+class ReadSettingsOperation {
+    private val data: ByteArray = byteArrayOf()
+    val settings : Settings
+        get() = Settings.fromByteArray(data)
+}
+
+
 class Operation(val operationType: OperationType, private val data: ByteArray = byteArrayOf()) {
     fun toByteArray(): ByteArray {
         val buffer = allocate(1 + data.size)
@@ -102,17 +109,17 @@ data class Settings(
 
     companion object {
         fun fromByteArray(array: ByteArray): Settings {
-            val buffer = ByteBuffer.wrap(array)
+            val buffer = wrap(array)
             return Settings(
-                expectedLightMinutes = buffer.short,
-                minLight = buffer.float,
-                maxLight = buffer.float,
-                minHumidity = buffer.float,
-                maxHumidity = buffer.float,
-                minSoilMoisture = buffer.float,
-                maxSoilMoisture = buffer.float,
-                minTemperatureInCelsius = buffer.float,
-                maxTemperatureInCelsius = buffer.float,
+                expectedLightMinutes = buffer.getShort(0),
+                minLight = buffer.getFloat(2),
+                maxLight = buffer.getFloat(6),
+                minHumidity = buffer.getFloat(10),
+                maxHumidity = buffer.getFloat(14),
+                minSoilMoisture = buffer.getFloat(18),
+                maxSoilMoisture = buffer.getFloat(22),
+                minTemperatureInCelsius = buffer.getFloat(26),
+                maxTemperatureInCelsius = buffer.getFloat(30),
             )
         }
 
@@ -126,32 +133,40 @@ data class Values(
     val soilMoisture: ArduinoFloat = 0f,
     val temperatureInCelsius: ArduinoFloat = 0f
 ) {
-    fun toByteArray(): ByteArray {
-        val buffer = allocate(bytes)
-        buffer.order(ByteOrder.LITTLE_ENDIAN)
-        buffer.putFloat(light)
-        buffer.putFloat(humidity)
-        buffer.putFloat(soilMoisture)
-        buffer.putFloat(temperatureInCelsius)
-        return buffer.array()
-    }
-
     companion object {
         fun fromByteArray(array: ByteArray): Values {
             val buffer = wrap(array)
-//            val light = buffer.float
-//            buffer.position(1)
-//            val intLight = buffer.int
-//            Log.d("BLUETOOTH", intLight.toString(16))
             return Values(
-                light = buffer.float,
-                humidity = buffer.float,
-                soilMoisture = buffer.float,
-                temperatureInCelsius = buffer.float
+                light = buffer.getFloat(0),
+                humidity = buffer.getFloat(4),
+                soilMoisture = buffer.getFloat(8),
+                temperatureInCelsius = buffer.getFloat(12)
             )
         }
 
         const val bytes = 16
+    }
+}
+
+data class Information(
+    val lightError: ArduinoInt,
+    val humidityError: ArduinoInt,
+    val soilMoistureError: ArduinoInt,
+    val temperatureError: ArduinoInt
+) {
+
+    companion object {
+        fun fromByteArray(array: ByteArray): Information {
+            val buffer = wrap(array)
+            return Information(
+                lightError = buffer.getShort(0),
+                humidityError = buffer.getShort(2),
+                soilMoistureError = buffer.getShort(4),
+                temperatureError = buffer.getShort(6)
+            )
+        }
+
+        const val bytes = 8
     }
 }
 
