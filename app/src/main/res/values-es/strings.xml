@@ -6,7 +6,7 @@
     <string name="second_fragment_label">Second Fragment</string>
     <string name="next">Siguiente</string>
     <string name="previous">Anterior</string>
-    <string name="devices">Dispostivios</string>
+    <string name="devices">Dispostivos</string>
     <string name="temperature">Temperatura</string>
     <string name="humidity">Humedad</string>
     <string name="soilHumidity">Humedad de suelo</string>

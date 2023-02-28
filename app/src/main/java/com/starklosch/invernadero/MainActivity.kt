@@ -8,6 +8,7 @@ import android.content.*
 import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
 import android.os.Parcelable
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -102,7 +103,7 @@ private fun AppContent(viewModel: MainActivityViewModel = viewModel()) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED){
             while(state is State.Connected) {
                 viewModel.write()
-                delay(1000)
+                delay(2000)
             }
         }
     }
@@ -128,9 +129,7 @@ private fun AppContent(viewModel: MainActivityViewModel = viewModel()) {
             if (state is State.Connected)
                 Button(onClick = viewModel::disconnect){
                     Text("Disconnect")
-
                 }
-
         }
     }
 }
@@ -142,6 +141,8 @@ private fun Information(values: Values?, modifier: Modifier = Modifier) {
     val soilMoisture  = if (values != null && !values.soilMoisture.isNaN()) values.soilMoisture else 25f
     val light  = if (values != null && !values.light.isNaN()) values.light else 25f
 
+    val context = LocalContext.current
+
     val columnMinWidth = 150.dp
     val columnMaxWidth = 240.dp
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -150,15 +151,17 @@ private fun Information(values: Values?, modifier: Modifier = Modifier) {
                 .weight(1f, false)
                 .widthIn(max = columnMaxWidth)
         ) {
-            Version2(
+            Sensor(
                 title = stringResource(R.string.temperature),
                 content = "${temperature.roundToInt()}º",
                 icon = R.drawable.thermometer,
+                onClick = { Toast.makeText(context, stringResource(R.string.temperature), Toast.LENGTH_SHORT).show() }
             )
-            Version2(
+            Sensor(
                 title = stringResource(R.string.humidity),
                 content = "${humidity.roundToInt()} %",
                 icon = R.drawable.water_droplet,
+                onClick = {}
             )
         }
         Column(
@@ -166,22 +169,25 @@ private fun Information(values: Values?, modifier: Modifier = Modifier) {
                 .weight(1f, false)
                 .widthIn(max = columnMaxWidth)
         ) {
-            Version2(
+            Sensor(
                 title = stringResource(R.string.soilHumidity),
                 content = "${soilMoisture.roundToInt()} %",
-                icon = R.drawable.moisture_soil
+                icon = R.drawable.moisture_soil,
+                onClick = {}
             )
-            Version2(
+            Sensor(
                 title = stringResource(R.string.light),
                 content = format(light, "lx"),
-                icon = R.drawable.light
+                icon = R.drawable.light,
+                onClick = {}
             )
         }
     }
 }
 
 @Composable
-private fun Version2(
+private fun Sensor(
+    onClick: () -> Unit,
     title: String = "Test",
     @DrawableRes icon: Int = R.drawable.water_droplet,
     content: String = "100%",
@@ -189,7 +195,7 @@ private fun Version2(
 ) {
     Card(
 //        shape = RoundedCornerShape(20.dp),
-        onClick = { },
+        onClick = onClick,
 //        elevation = 2.dp
         modifier = Modifier
             .padding(16.dp)
