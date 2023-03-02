@@ -8,66 +8,71 @@ import com.juul.kable.State
 import com.juul.kable.State.Disconnected
 import com.juul.kable.peripheral
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class MainActivityViewModel : ViewModel() {
 
-    private val _device = MutableStateFlow<SensorTag?>(null)
+    private val device = MutableStateFlow<ArduinoPeripheral?>(null)
+    private val _deviceName = MutableStateFlow("")
     private val _state = MutableStateFlow<State>(Disconnected())
+    private val _settings = MutableStateFlow(Settings())
+    private val _values = MutableStateFlow(Values())
+    private val _information = MutableStateFlow(Information())
 
-    val device = _device.asStateFlow()
-    val state = _state.asStateFlow()
-    val test = flow {
-        var i = 0
-        while (true) {
-            Log.d("FLOW", "Emitting $i")
-            emit(i++)
-            delay(1000)
-        }
-    }
-
-    val test2 = test.stateIn(
-        initialValue = 0,
-        scope = viewModelScope,
-        started = WhileSubscribed(5000)
-    )
+    val deviceName = _deviceName.asStateFlow()
+    val connectionState = _state.asStateFlow()
+    val values = _values.asStateFlow()
+    val settings = _settings.asStateFlow()
+    val information = _information.asStateFlow()
 
     fun connect(mac: String) {
         val peripheral = viewModelScope.peripheral(mac)
-        val tag = SensorTag(peripheral)
-        _device.value = tag
+        val tag = ArduinoPeripheral(peripheral)
+        disconnect()
 
-        viewModelScope.observe(tag)
-        viewModelScope.connect(_device.value!!)
+        _deviceName.value = peripheral.name ?: ""
+        device.value = tag
+        device.value?.let {
+            viewModelScope.observe(tag)
+            viewModelScope.connect(it)
+        }
     }
 
     fun disconnect() {
         viewModelScope.disconnect()
     }
 
-    fun write() {
+    fun updateValues() {
         viewModelScope.launch {
-            _device.value?.write(Operation(OperationType.ReadValues))
-            Log.d("FLOW", "Writing")
+            device.value?.request(Request.ValuesRequest())
+            Log.d("FLOW", "Updating values")
         }
     }
 
-    private fun CoroutineScope.observe(peripheral: SensorTag) {
+    private fun CoroutineScope.observe(peripheral: ArduinoPeripheral) {
         launch {
             peripheral.state.collect { _state.value = it }
         }
+        launch {
+            peripheral.operations.collect {
+                when (it) {
+                    is Response.ValuesResponse -> _values.value = it.values.copyToNonFinite(_values.value)
+                    is Response.InformationResponse -> _information.value = it.information
+                    is Response.SettingsResponse -> _settings.value = it.settings
+                    else -> {}
+                }
+            }
+        }
     }
 
-    private fun CoroutineScope.connect(peripheral: SensorTag) {
+    private fun CoroutineScope.connect(peripheral: ArduinoPeripheral) {
         launch {
             try {
                 peripheral.connect()
+                peripheral.request(Request.InformationRequest())
+//                peripheral.request(Request.SettingsRequest())
             } catch (_: ConnectionLostException) {
 
             }
@@ -86,7 +91,7 @@ class MainActivityViewModel : ViewModel() {
             }
         }.invokeOnCompletion {
             _state.value = Disconnected()
-            _device.value = null
+            device.value = null
         }
     }
 }

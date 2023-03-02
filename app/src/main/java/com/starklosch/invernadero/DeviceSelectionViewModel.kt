@@ -1,11 +1,12 @@
 package com.starklosch.invernadero
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.juul.kable.Advertisement
 import com.starklosch.invernadero.ScanStatus.Scanning
 import com.starklosch.invernadero.ScanStatus.Stopped
+import com.starklosch.invernadero.extensions.cancelChildren
+import com.starklosch.invernadero.extensions.childScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
@@ -23,7 +24,7 @@ sealed class ScanStatus {
     data class Failed(val message: CharSequence) : ScanStatus()
 }
 
-class ScanViewModel(application: Application) : AndroidViewModel(application) {
+class DeviceSelectionViewModel : ViewModel() {
 
     private val scanScope = viewModelScope.childScope()
     private val found = hashMapOf<String, Advertisement>()
@@ -44,7 +45,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                 scanner
                     .advertisements
                     .catch { cause -> _scanStatus.value =
-                        ScanStatus.Failed(cause.message ?: "Unknown error")
+                        ScanStatus.Failed(cause.message ?: "Unknown reason")
                     }
                     .onCompletion { cause -> if (cause == null || cause is CancellationException) _scanStatus.value = Stopped }
                     .collect { advertisement ->

@@ -6,82 +6,6 @@ import java.nio.ByteOrder
 typealias ArduinoInt = Short
 typealias ArduinoFloat = Float
 
-enum class OperationType(val id: Byte) {
-    ReadValues('V'.code.toByte()),
-    ReadSettings('S'.code.toByte()),
-    ReadInformation('I'.code.toByte()),
-    SetSettings('W'.code.toByte());
-
-    companion object {
-        fun fromByte(value: Byte) = OperationType.values().first { it.id == value }
-    }
-}
-
-class ReadSettingsOperation {
-    private val data: ByteArray = byteArrayOf()
-    val settings : Settings
-        get() = Settings.fromByteArray(data)
-}
-
-
-class Operation(val operationType: OperationType, private val data: ByteArray = byteArrayOf()) {
-    fun toByteArray(): ByteArray {
-        val buffer = allocate(1 + data.size)
-        buffer.put(operationType.id)
-        if (data.isNotEmpty())
-            buffer.put(data)
-        return buffer.array()
-    }
-
-    val settings: Settings
-        get() {
-            if (operationType == OperationType.ReadSettings)
-                throw Exception("Cannot get Configuration from a \"GetInformation\" operation")
-
-            if (data.size < Settings.bytes)
-                throw Exception("Too few bytes")
-
-            return Settings.fromByteArray(data)
-        }
-
-    val values: Values
-        get() {
-            if (operationType != OperationType.ReadValues)
-                throw Exception("Cannot get Information from a \"$operationType\" operation")
-
-            if (data.size < Values.bytes)
-                throw Exception("Too few bytes")
-
-            return Values.fromByteArray(data)
-        }
-
-    companion object {
-        fun getConfiguration(): Operation {
-            return Operation(operationType = OperationType.ReadSettings)
-        }
-
-        fun setConfiguration(settings: Settings): Operation {
-            return Operation(
-                operationType = OperationType.SetSettings,
-                settings.toByteArray()
-            )
-        }
-
-        fun getInformation(): Operation {
-            return Operation(operationType = OperationType.ReadValues)
-        }
-
-        fun fromByteArray(array: ByteArray): Operation {
-            val buffer = wrap(array)
-            val operationType = buffer.get()
-            val size = buffer.remaining()
-            val data = ByteArray(size)
-            buffer.get(data)
-            return Operation(OperationType.fromByte(operationType), data)
-        }
-    }
-}
-
 data class Settings(
     val expectedLightMinutes: ArduinoInt = 0,
     val minLight: ArduinoFloat = 0f,
@@ -90,8 +14,8 @@ data class Settings(
     val maxHumidity: ArduinoFloat = 100f,
     val minSoilMoisture: ArduinoFloat = 0f,
     val maxSoilMoisture: ArduinoFloat = 100f,
-    val minTemperatureInCelsius: ArduinoFloat = 0f,
-    val maxTemperatureInCelsius: ArduinoFloat = 100f
+    val minTemperature: ArduinoFloat = 0f,
+    val maxTemperature: ArduinoFloat = 100f
 ) {
     fun toByteArray(): ByteArray {
         val buffer = allocate(bytes)
@@ -102,8 +26,8 @@ data class Settings(
         buffer.putFloat(maxHumidity)
         buffer.putFloat(minSoilMoisture)
         buffer.putFloat(maxSoilMoisture)
-        buffer.putFloat(minTemperatureInCelsius)
-        buffer.putFloat(maxTemperatureInCelsius)
+        buffer.putFloat(minTemperature)
+        buffer.putFloat(maxTemperature)
         return buffer.array()
     }
 
@@ -118,8 +42,8 @@ data class Settings(
                 maxHumidity = buffer.getFloat(14),
                 minSoilMoisture = buffer.getFloat(18),
                 maxSoilMoisture = buffer.getFloat(22),
-                minTemperatureInCelsius = buffer.getFloat(26),
-                maxTemperatureInCelsius = buffer.getFloat(30),
+                minTemperature = buffer.getFloat(26),
+                maxTemperature = buffer.getFloat(30),
             )
         }
 
@@ -131,8 +55,17 @@ data class Values(
     val light: ArduinoFloat = 0f,
     val humidity: ArduinoFloat = 0f,
     val soilMoisture: ArduinoFloat = 0f,
-    val temperatureInCelsius: ArduinoFloat = 0f
+    val temperature: ArduinoFloat = 0f
 ) {
+
+    fun copyToNonFinite(other: Values): Values {
+        val newLight = light.ifNotFinite(other.light)
+        val newHumidity = humidity.ifNotFinite(other.humidity)
+        val newSoilMoisture = soilMoisture.ifNotFinite(other.soilMoisture)
+        val newTemperature = temperature.ifNotFinite(other.temperature)
+        return Values(newLight, newHumidity, newSoilMoisture, newTemperature)
+    }
+
     companion object {
         fun fromByteArray(array: ByteArray): Values {
             val buffer = wrap(array)
@@ -140,7 +73,7 @@ data class Values(
                 light = buffer.getFloat(0),
                 humidity = buffer.getFloat(4),
                 soilMoisture = buffer.getFloat(8),
-                temperatureInCelsius = buffer.getFloat(12)
+                temperature = buffer.getFloat(12)
             )
         }
 
@@ -149,10 +82,10 @@ data class Values(
 }
 
 data class Information(
-    val lightError: ArduinoInt,
-    val humidityError: ArduinoInt,
-    val soilMoistureError: ArduinoInt,
-    val temperatureError: ArduinoInt
+    val lightError: ArduinoInt = 0,
+    val humidityError: ArduinoInt = 0,
+    val soilMoistureError: ArduinoInt = 0,
+    val temperatureError: ArduinoInt = 0
 ) {
 
     companion object {

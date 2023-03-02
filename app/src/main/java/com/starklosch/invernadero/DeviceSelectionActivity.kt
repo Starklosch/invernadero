@@ -12,7 +12,6 @@ import android.app.Activity
 import android.bluetooth.*
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -30,6 +29,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.accompanist.permissions.*
@@ -38,7 +38,7 @@ import com.juul.kable.Bluetooth
 import com.starklosch.invernadero.ui.theme.InvernaderoTheme
 
 class DeviceSelectionActivity : ComponentActivity() {
-    private val viewModel by viewModels<ScanViewModel>()
+    private val viewModel by viewModels<DeviceSelectionViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,7 +66,6 @@ class DeviceSelectionActivity : ComponentActivity() {
     @SuppressLint("MissingPermission")
     @Composable
     private fun Main() {
-        val activity = LocalContext.current as DeviceSelectionActivity
         val bluetoothPermission = rememberMultiplePermissionsState(
             listOf(
                 Manifest.permission.BLUETOOTH_CONNECT,
@@ -91,30 +90,19 @@ class DeviceSelectionActivity : ComponentActivity() {
         )
         { padding ->
             Box(Modifier.padding(padding).fillMaxSize().pullRefresh(pullRefreshState)) {
-                if (!bluetoothPermission.allPermissionsGranted)
+                if (bluetoothPermission.allPermissionsGranted) {
+                    if (isAvailable) {
+                        LaunchedEffect(true) {
+                            viewModel.start()
+                        }
+                        ShowDevices()
+                    } else {
+                        EnableBluetoothButton(
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+                } else
                     PermissionRequest(bluetoothPermission)
-
-                val launcher = rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.StartActivityForResult(),
-                    onResult = {}
-                )
-
-                if (isAvailable) {
-                    LaunchedEffect(isAvailable) {
-                        viewModel.start()
-                    }
-                    ShowDevices()
-                } else {
-                    Button(
-                        onClick = {
-                            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                            launcher.launch(enableBtIntent)
-                        },
-                        modifier = Modifier.align(Alignment.Center)
-                    ) {
-                        Text("Enable Bluetooth")
-                    }
-                }
 
                 PullRefreshIndicator(
                     refreshing,
@@ -148,9 +136,37 @@ private fun TopBar() {
 }
 
 @Composable
+private fun EnableBluetoothButton(modifier: Modifier = Modifier) {
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+        onResult = {}
+    )
+    val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+
+    LaunchedEffect(true){
+        launcher.launch(enableBtIntent)
+    }
+
+    Button(
+        onClick = {
+            launcher.launch(enableBtIntent)
+        },
+        modifier = modifier
+    ) {
+
+        Text(stringResource(R.string.enable_bluetooth))
+    }
+}
+
+@Composable
 private fun PermissionRequest(bluetoothPermission: MultiplePermissionsState) {
+    LaunchedEffect(true) {
+        bluetoothPermission.launchMultiplePermissionRequest()
+    }
+
     Column(
         verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxSize()
     ) {
         if (bluetoothPermission.shouldShowRationale)
@@ -180,7 +196,6 @@ private fun PermissionRequest(bluetoothPermission: MultiplePermissionsState) {
 private fun BluetoothDeviceEntry(device: Advertisement) {
     val activity = LocalContext.current as Activity
 
-    Log.d("UI", "Device")
     Card(
         onClick = {
             val intent = Intent()

@@ -6,9 +6,20 @@
     <string name="second_fragment_label">Second Fragment</string>
     <string name="next">Siguiente</string>
     <string name="previous">Anterior</string>
-    <string name="devices">Dispostivos</string>
+    <string name="devices">Dispositivos</string>
     <string name="temperature">Temperatura</string>
     <string name="humidity">Humedad</string>
     <string name="soilHumidity">Humedad de suelo</string>
     <string name="light">Luz</string>
+    <string name="disconnect">Desconectar</string>
+    <string name="connecting_to">Conectando a %s</string>
+    <string name="unknown_device">dispostivo desconocido</string>
+    <string name="connected">Conectado</string>
+    <string name="select_device">Seleccionar dispositivo</string>
+    <string name="disconnecting_from">Desonectando de %s</string>
+    <string name="connecting">Conectando</string>
+    <string name="disconnecting">Desconectando</string>
+    <string name="disconnected">Desconectado</string>
+    <string name="enable_bluetooth">Activar Bluetooth</string>
+    <string name="connected_to">Conectado a %s</string>
 </resources>

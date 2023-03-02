@@ -48,5 +48,21 @@
     <string name="humidity">Humidity</string>
     <string name="soilHumidity">Soil humidity</string>
     <string name="light">Light</string>
+
     <string name="title_activity_bluetooth">BluetoothActivity</string>
+    <string name="unknown_device">unknown device</string>
+
+    <!-- Connection -->
+    <string name="connected">Connected</string>
+    <string name="connected_to">Connected to %s</string>
+    <string name="connecting_to">Connecting to %s</string>
+    <string name="disconnected">Disconnected</string>
+    <string name="disconnecting_from">Disconnecting from %s</string>
+    <string name="connecting">Connecting</string>
+    <string name="disconnecting">Disconnecting</string>
+
+    <!-- Actions -->
+    <string name="select_device">Select device</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="enable_bluetooth">Enable Bluetooth</string>
 </resources>

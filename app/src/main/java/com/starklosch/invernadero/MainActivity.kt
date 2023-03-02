@@ -2,13 +2,9 @@
 
 package com.starklosch.invernadero
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.*
-import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
-import android.os.Parcelable
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -36,14 +32,7 @@ import kotlinx.coroutines.delay
 import kotlin.math.round
 import kotlin.math.roundToInt
 
-inline fun <reified T : Parcelable> Intent.parcelable(key: String): T? = when {
-    SDK_INT >= 33 -> getParcelableExtra(key, T::class.java)
-    else -> @Suppress("DEPRECATION") getParcelableExtra(key) as? T
-}
-
 class MainActivity : ComponentActivity() {
-
-//    private val viewModel by viewModels<MainActivityViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,7 +50,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@SuppressLint("MissingPermission")
 @Preview
 @Composable
 private fun Main() {
@@ -82,66 +70,61 @@ private fun Main() {
 
 @Composable
 private fun AppContent(viewModel: MainActivityViewModel = viewModel()) {
-    val context = LocalContext.current
-    val launcher =
-        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                val address = result.data?.getStringExtra("device")
-                if (address != null)
-                    viewModel.connect(address)
-            }
-        }
+    val state by viewModel.connectionState.collectAsStateWithLifecycle()
+    val deviceName by viewModel.deviceName.collectAsStateWithLifecycle()
+    val values by viewModel.values.collectAsStateWithLifecycle()
 
-    val device by viewModel.device.collectAsStateWithLifecycle()
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    val subscribe = device?.rawData?.collectAsStateWithLifecycle(Operation(OperationType.ReadInformation))
-
-//    val test by viewModel.test2.collectAsStateWithLifecycle()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
     LaunchedEffect(state) {
-        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED){
-            while(state is State.Connected) {
-                viewModel.write()
-                delay(2000)
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (state is State.Connected) {
+                viewModel.updateValues()
+                delay(1500)
             }
         }
     }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("State: ${state.toString().takeWhile { it != '(' }}")
-//        Text("Counter: $test")
-
-        Information(subscribe?.value.takeIf { it?.operationType == OperationType.ReadValues }?.values)
+        StateIndicator(state, deviceName)
+        Information(values)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Button(onClick = {
-                val intent = Intent(context, DeviceSelectionActivity::class.java)
-                launcher.launch(intent)
-            }) {
-                Text("Select device")
-            }
 
-            if (state is State.Connected)
-                Button(onClick = viewModel::disconnect){
-                    Text("Disconnect")
-                }
+            ConnectionButton(
+                state = state,
+                onDeviceSelected = { viewModel.connect(it) },
+                onDisconnect = viewModel::disconnect
+            )
         }
     }
 }
 
 @Composable
-private fun Information(values: Values?, modifier: Modifier = Modifier) {
-    val temperature = if (values != null && !values.temperatureInCelsius.isNaN()) values.temperatureInCelsius else 25f
-    val humidity  = if (values != null && !values.humidity.isNaN()) values.humidity else 25f
-    val soilMoisture  = if (values != null && !values.soilMoisture.isNaN()) values.soilMoisture else 25f
-    val light  = if (values != null && !values.light.isNaN()) values.light else 25f
+private fun StateIndicator(state: State, deviceName: String) {
+    val name = if (deviceName.isEmpty()) stringResource(R.string.unknown_device) else deviceName
+    val resourceId = when (state) {
+        is State.Connecting -> R.string.connecting_to
+        is State.Connected -> R.string.connected_to
+        is State.Disconnecting -> R.string.disconnecting_from
+        is State.Disconnected -> R.string.disconnected
+    }
 
-    val context = LocalContext.current
+    Text(stringResource(resourceId, name))
+}
+
+@Composable
+private fun Information(values: Values, modifier: Modifier = Modifier) {
+    val temperature = values.temperature
+    val humidity = values.humidity
+    val soilMoisture = values.soilMoisture
+    val light = values.light
+
+    val activity = LocalContext.current as Activity
 
     val columnMinWidth = 150.dp
     val columnMaxWidth = 240.dp
@@ -155,11 +138,14 @@ private fun Information(values: Values?, modifier: Modifier = Modifier) {
                 title = stringResource(R.string.temperature),
                 content = "${temperature.roundToInt()}º",
                 icon = R.drawable.thermometer,
-                onClick = { Toast.makeText(context, stringResource(R.string.temperature), Toast.LENGTH_SHORT).show() }
+                onClick = {
+                    val intent = Intent(activity, SettingActivity::class.java)
+                    activity.startActivity(intent)
+                }
             )
             Sensor(
                 title = stringResource(R.string.humidity),
-                content = "${humidity.roundToInt()} %",
+                content = "${humidity.roundToInt()}%",
                 icon = R.drawable.water_droplet,
                 onClick = {}
             )
@@ -171,7 +157,7 @@ private fun Information(values: Values?, modifier: Modifier = Modifier) {
         ) {
             Sensor(
                 title = stringResource(R.string.soilHumidity),
-                content = "${soilMoisture.roundToInt()} %",
+                content = "${soilMoisture.roundToInt()}%",
                 icon = R.drawable.moisture_soil,
                 onClick = {}
             )
@@ -183,6 +169,53 @@ private fun Information(values: Values?, modifier: Modifier = Modifier) {
             )
         }
     }
+}
+
+@Composable
+private fun ConnectionButton(
+    state: State,
+    onDeviceSelected: (String) -> Unit,
+    onDisconnect: () -> Unit
+) {
+    val context = LocalContext.current
+    val launcher =
+        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val address = result.data?.getStringExtra("device")
+                if (address != null)
+                    onDeviceSelected(address)
+            }
+        }
+
+    val text = when (state) {
+        is State.Connected -> stringResource(R.string.disconnect)
+        is State.Connecting -> stringResource(R.string.connecting)
+        is State.Disconnecting -> stringResource(R.string.disconnecting)
+        is State.Disconnected -> stringResource(R.string.select_device)
+    }
+
+    val selectDevice = {
+        val intent = Intent(context, DeviceSelectionActivity::class.java)
+        launcher.launch(intent)
+    }
+
+    val action: () -> Unit = when (state) {
+        is State.Connected,
+        is State.Connecting -> onDisconnect
+        is State.Disconnecting,
+        is State.Disconnected -> selectDevice
+    }
+
+    val enabled = state is State.Connected || state is State.Disconnected
+
+    Button(onClick = action, enabled = enabled) {
+        Text(text)
+    }
+}
+
+@Composable
+private fun DisconnectButton(onClick: () -> Unit) {
+
 }
 
 @Composable
@@ -237,7 +270,7 @@ private fun TopBar() {
 private fun format(value: ArduinoFloat, unit: String): String {
     var _value = value
     var _unit = unit
-    if (value > 1000){
+    if (value > 1000) {
         _value = value / 1000
         _unit = "k" + unit
     }
