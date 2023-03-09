@@ -8,26 +8,28 @@ typealias ArduinoFloat = Float
 
 data class Settings(
     val expectedLightMinutes: ArduinoInt = 0,
-    val minLight: ArduinoFloat = 0f,
-    val maxLight: ArduinoFloat = 100f,
-    val minHumidity: ArduinoFloat = 0f,
-    val maxHumidity: ArduinoFloat = 100f,
-    val minSoilMoisture: ArduinoFloat = 0f,
-    val maxSoilMoisture: ArduinoFloat = 100f,
-    val minTemperature: ArduinoFloat = 0f,
-    val maxTemperature: ArduinoFloat = 100f
+    val lightIntensity : ArduinoInt = 0,
+    val minLight: ArduinoInt = 0,
+    val maxLight: ArduinoInt = 100,
+    val minHumidity: ArduinoInt = 0,
+    val maxHumidity: ArduinoInt = 100,
+    val minSoilMoisture: ArduinoInt = 0,
+    val maxSoilMoisture: ArduinoInt = 100,
+    val minTemperature: ArduinoInt = 0,
+    val maxTemperature: ArduinoInt = 100
 ) {
     fun toByteArray(): ByteArray {
         val buffer = allocate(bytes)
         buffer.putShort(expectedLightMinutes)
-        buffer.putFloat(minLight)
-        buffer.putFloat(maxLight)
-        buffer.putFloat(minHumidity)
-        buffer.putFloat(maxHumidity)
-        buffer.putFloat(minSoilMoisture)
-        buffer.putFloat(maxSoilMoisture)
-        buffer.putFloat(minTemperature)
-        buffer.putFloat(maxTemperature)
+        buffer.putShort(lightIntensity)
+        buffer.putShort(minLight)
+        buffer.putShort(maxLight)
+        buffer.putShort(minHumidity)
+        buffer.putShort(maxHumidity)
+        buffer.putShort(minSoilMoisture)
+        buffer.putShort(maxSoilMoisture)
+        buffer.putShort(minTemperature)
+        buffer.putShort(maxTemperature)
         return buffer.array()
     }
 
@@ -35,34 +37,35 @@ data class Settings(
         fun fromByteArray(array: ByteArray): Settings {
             val buffer = wrap(array)
             return Settings(
-                expectedLightMinutes = buffer.getShort(0),
-                minLight = buffer.getFloat(2),
-                maxLight = buffer.getFloat(6),
-                minHumidity = buffer.getFloat(10),
-                maxHumidity = buffer.getFloat(14),
-                minSoilMoisture = buffer.getFloat(18),
-                maxSoilMoisture = buffer.getFloat(22),
-                minTemperature = buffer.getFloat(26),
-                maxTemperature = buffer.getFloat(30),
+                expectedLightMinutes = buffer.getShort(),
+                lightIntensity = buffer.getShort(),
+                minLight = buffer.getShort(),
+                maxLight = buffer.getShort(),
+                minHumidity = buffer.getShort(),
+                maxHumidity = buffer.getShort(),
+                minSoilMoisture = buffer.getShort(),
+                maxSoilMoisture = buffer.getShort(),
+                minTemperature = buffer.getShort(),
+                maxTemperature = buffer.getShort()
             )
         }
 
-        const val bytes = 34
+        const val bytes = 20
     }
 }
 
 data class Values(
-    val light: ArduinoFloat = 0f,
-    val humidity: ArduinoFloat = 0f,
-    val soilMoisture: ArduinoFloat = 0f,
-    val temperature: ArduinoFloat = 0f
+    val light: ArduinoInt = 0,
+    val humidity: ArduinoInt = 0,
+    val soilMoisture: ArduinoInt = 0,
+    val temperature: ArduinoInt = 0
 ) {
 
     fun copyToNonFinite(other: Values): Values {
-        val newLight = light.ifNotFinite(other.light)
-        val newHumidity = humidity.ifNotFinite(other.humidity)
-        val newSoilMoisture = soilMoisture.ifNotFinite(other.soilMoisture)
-        val newTemperature = temperature.ifNotFinite(other.temperature)
+        val newLight = light.ifNegative(other.light)
+        val newHumidity = humidity.ifNegative(other.humidity)
+        val newSoilMoisture = soilMoisture.ifNegative(other.soilMoisture)
+        val newTemperature = temperature.ifNegative(other.temperature)
         return Values(newLight, newHumidity, newSoilMoisture, newTemperature)
     }
 
@@ -70,14 +73,14 @@ data class Values(
         fun fromByteArray(array: ByteArray): Values {
             val buffer = wrap(array)
             return Values(
-                light = buffer.getFloat(0),
-                humidity = buffer.getFloat(4),
-                soilMoisture = buffer.getFloat(8),
-                temperature = buffer.getFloat(12)
+                light = buffer.getShort(),
+                humidity = buffer.getShort(),
+                soilMoisture = buffer.getShort(),
+                temperature = buffer.getShort()
             )
         }
 
-        const val bytes = 16
+        const val bytes = 8
     }
 }
 
@@ -92,10 +95,10 @@ data class Information(
         fun fromByteArray(array: ByteArray): Information {
             val buffer = wrap(array)
             return Information(
-                lightError = buffer.getShort(0),
-                humidityError = buffer.getShort(2),
-                soilMoistureError = buffer.getShort(4),
-                temperatureError = buffer.getShort(6)
+                lightError = buffer.getShort(),
+                humidityError = buffer.getShort(),
+                soilMoistureError = buffer.getShort(),
+                temperatureError = buffer.getShort()
             )
         }
 

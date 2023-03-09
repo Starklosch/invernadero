@@ -6,13 +6,9 @@ import kotlin.math.roundToInt
 
 val prefixes = arrayOf("","k", "m", "g", "t")
 
-data class Measurement(val value : Float, val unit : String) {
+data class Measurement(val value : Int, val unit : String) {
 
-    private val thousandsFactor = if (value != 0f) (log10(value) / 3).toInt() else 0
-
-//    init {
-//        NumberFormat.getPercentInstance().
-//    }
+    private val thousandsFactor = if (value != 0) (log10(value.toFloat()) / 3).toInt() else 0
 
     val near = value / 1000f.pow(thousandsFactor)
     val prefix = prefixes[thousandsFactor]

@@ -5,6 +5,7 @@ package com.starklosch.invernadero
 import android.app.Activity
 import android.content.*
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -13,16 +14,11 @@ import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.*
+import androidx.compose.ui.platform.*
+import androidx.compose.ui.res.*
+import androidx.compose.ui.text.style.*
+import androidx.compose.ui.unit.*
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
@@ -30,8 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.juul.kable.State
 import com.starklosch.invernadero.ui.theme.InvernaderoTheme
 import kotlinx.coroutines.delay
-import java.text.NumberFormat
-import kotlin.math.roundToInt
+import kotlin.math.*
 
 class MainActivity : ComponentActivity() {
 
@@ -90,8 +85,7 @@ private fun AppContent(viewModel: MainActivityViewModel = viewModel()) {
         Information(values)
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
 
@@ -125,52 +119,65 @@ private fun Information(values: Values, modifier: Modifier = Modifier) {
     val light = values.light
 
     val activity = LocalContext.current as Activity
+    val launcher =
+        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+                val setting = result.data?.getStringExtra("setting")
+                val min = result.data?.getIntExtra("min", 0)
+                val max = result.data?.getIntExtra("max", 100)
 
-    val percentFormat = NumberFormat.getPercentInstance()
-    val columnMinWidth = 150.dp
-    val columnMaxWidth = 240.dp
-    Row(verticalAlignment = Alignment.CenterVertically) {
+                Toast.makeText(activity, "$setting min $min, max $max", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(16.dp).widthIn(max = 500.dp)
+    ) {
         Column(
             modifier = Modifier
                 .weight(1f, false)
-                .widthIn(max = columnMaxWidth)
         ) {
             Sensor(
+                modifier = Modifier.fillMaxWidth(),
+                title = stringResource(R.string.temperature),
+                content = "${temperature}º",
+                icon = R.drawable.thermometer,
+                fontSize = 28.sp,
                 onClick = {
                     val intent = Intent(activity, SettingActivity::class.java)
-                    activity.startActivity(intent)
-                },
-                title = stringResource(R.string.temperature),
-                icon = R.drawable.thermometer,
-                content = "${temperature.roundToInt()}º",
-                fontSize = 28.sp
+                    intent.putExtra("setting", "temperature")
+                    launcher.launch(intent)
+                }
             )
             Sensor(
-                onClick = {},
+                modifier = Modifier.fillMaxWidth(),
                 title = stringResource(R.string.humidity),
+                content = "${humidity}%",
                 icon = R.drawable.water_droplet,
-                content = "${humidity.roundToInt()} %",
-                fontSize = 28.sp
+                fontSize = 28.sp,
+                onClick = {}
             )
         }
         Column(
             modifier = Modifier
                 .weight(1f, false)
-                .widthIn(max = columnMaxWidth)
         ) {
             Sensor(
-                onClick = {},
+                modifier = Modifier.fillMaxWidth(),
                 title = stringResource(R.string.soilHumidity),
+                content = "${soilMoisture}%",
                 icon = R.drawable.moisture_soil,
-                content = percentFormat.format(soilMoisture / 100),
-                fontSize = 28.sp
+                fontSize = 28.sp,
+                onClick = {}
             )
             Sensor(
-                onClick = {},
+                modifier = Modifier.fillMaxWidth(),
                 title = stringResource(R.string.light),
+                content = Measurement(light.toInt(), "lx").format(),
                 icon = R.drawable.light,
-                content = Measurement(light, "lx").format(),
-                fontSize = 28.sp
+                fontSize = 28.sp,
+                onClick = {}
             )
         }
     }
@@ -220,17 +227,17 @@ private fun ConnectionButton(
 
 @Composable
 private fun Sensor(
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
     title: String = "Test",
     @DrawableRes icon: Int = R.drawable.water_droplet,
     content: String = "100%",
-    fontSize: TextUnit = 28.sp,
-    modifier: Modifier = Modifier.fillMaxWidth()
+    fontSize: TextUnit = 28.sp
 ) {
     Card(
         onClick = onClick,
         modifier = Modifier
-            .padding(16.dp)
+            .padding(8.dp)
             .then(modifier)
     ) {
         Row(
@@ -242,7 +249,7 @@ private fun Sensor(
                 contentDescription = null,
                 modifier = Modifier.size(32.dp)
             )
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(16.dp))
             Text(
                 text = content,
                 fontSize = fontSize,
@@ -259,7 +266,7 @@ private fun TopBar() {
     TopAppBar(title = { Text(text = context.resources.getString(R.string.app_name)) })
 }
 
-private fun format(value: ArduinoFloat, unit: String): String {
+private fun format(value: Float, unit: String): String {
     var _value = value
     var _unit = unit
     if (value > 1000) {
@@ -269,3 +276,5 @@ private fun format(value: ArduinoFloat, unit: String): String {
 
     return "${_value.roundToInt()} $_unit"
 }
+
+private fun format(value: Short, unit: String) : String = format(value.toFloat(), unit)
