@@ -19,7 +19,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -29,7 +30,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.juul.kable.State
 import com.starklosch.invernadero.ui.theme.InvernaderoTheme
 import kotlinx.coroutines.delay
-import kotlin.math.round
+import java.text.NumberFormat
 import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
@@ -50,7 +51,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Preview
 @Composable
 private fun Main() {
     Scaffold(
@@ -126,6 +126,7 @@ private fun Information(values: Values, modifier: Modifier = Modifier) {
 
     val activity = LocalContext.current as Activity
 
+    val percentFormat = NumberFormat.getPercentInstance()
     val columnMinWidth = 150.dp
     val columnMaxWidth = 240.dp
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -135,19 +136,21 @@ private fun Information(values: Values, modifier: Modifier = Modifier) {
                 .widthIn(max = columnMaxWidth)
         ) {
             Sensor(
-                title = stringResource(R.string.temperature),
-                content = "${temperature.roundToInt()}º",
-                icon = R.drawable.thermometer,
                 onClick = {
                     val intent = Intent(activity, SettingActivity::class.java)
                     activity.startActivity(intent)
-                }
+                },
+                title = stringResource(R.string.temperature),
+                icon = R.drawable.thermometer,
+                content = "${temperature.roundToInt()}º",
+                fontSize = 28.sp
             )
             Sensor(
+                onClick = {},
                 title = stringResource(R.string.humidity),
-                content = "${humidity.roundToInt()}%",
                 icon = R.drawable.water_droplet,
-                onClick = {}
+                content = "${humidity.roundToInt()} %",
+                fontSize = 28.sp
             )
         }
         Column(
@@ -156,16 +159,18 @@ private fun Information(values: Values, modifier: Modifier = Modifier) {
                 .widthIn(max = columnMaxWidth)
         ) {
             Sensor(
+                onClick = {},
                 title = stringResource(R.string.soilHumidity),
-                content = "${soilMoisture.roundToInt()}%",
                 icon = R.drawable.moisture_soil,
-                onClick = {}
+                content = percentFormat.format(soilMoisture / 100),
+                fontSize = 28.sp
             )
             Sensor(
+                onClick = {},
                 title = stringResource(R.string.light),
-                content = format(light, "lx"),
                 icon = R.drawable.light,
-                onClick = {}
+                content = Measurement(light, "lx").format(),
+                fontSize = 28.sp
             )
         }
     }
@@ -214,28 +219,21 @@ private fun ConnectionButton(
 }
 
 @Composable
-private fun DisconnectButton(onClick: () -> Unit) {
-
-}
-
-@Composable
 private fun Sensor(
     onClick: () -> Unit,
     title: String = "Test",
     @DrawableRes icon: Int = R.drawable.water_droplet,
     content: String = "100%",
+    fontSize: TextUnit = 28.sp,
     modifier: Modifier = Modifier.fillMaxWidth()
 ) {
     Card(
-//        shape = RoundedCornerShape(20.dp),
         onClick = onClick,
-//        elevation = 2.dp
         modifier = Modifier
             .padding(16.dp)
             .then(modifier)
     ) {
         Row(
-            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(16.dp).fillMaxWidth()
         ) {
@@ -244,22 +242,16 @@ private fun Sensor(
                 contentDescription = null,
                 modifier = Modifier.size(32.dp)
             )
-            Spacer(Modifier.width(16.dp))
-//            Column(horizontalAlignment = Alignment.CenterHorizontally,
-//            modifier = Modifier.fillMaxWidth()) {
-            val t = Text(
+            Spacer(Modifier.width(10.dp))
+            Text(
                 text = content,
-                fontSize = 32.sp,
-                //                modifier = Modifier.weight(1f)
+                fontSize = fontSize,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f)
             )
-//            }
         }
-
     }
 }
-
-private fun roundDecimals(number: Float) =
-    (round(number * 100) / 100).toString()
 
 @Composable
 private fun TopBar() {

@@ -22,4 +22,5 @@
     <string name="disconnected">Desconectado</string>
     <string name="enable_bluetooth">Activar Bluetooth</string>
     <string name="connected_to">Conectado a %s</string>
+    <string name="request_permissions">Pedir permisos</string>
 </resources>
