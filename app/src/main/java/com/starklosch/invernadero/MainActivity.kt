@@ -68,6 +68,7 @@ private fun AppContent(viewModel: MainActivityViewModel = viewModel()) {
     val state by viewModel.connectionState.collectAsStateWithLifecycle()
     val deviceName by viewModel.deviceName.collectAsStateWithLifecycle()
     val values by viewModel.values.collectAsStateWithLifecycle()
+    val information by viewModel.information.collectAsStateWithLifecycle()
 
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
@@ -82,7 +83,7 @@ private fun AppContent(viewModel: MainActivityViewModel = viewModel()) {
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         StateIndicator(state, deviceName)
-        Information(values)
+        Information(values = values, information = information)
         Row(
             modifier = Modifier
                 .fillMaxWidth(),
@@ -112,7 +113,7 @@ private fun StateIndicator(state: State, deviceName: String) {
 }
 
 @Composable
-private fun Information(values: Values, modifier: Modifier = Modifier) {
+private fun Information(values: Values, information: Information, modifier: Modifier = Modifier) {
     val temperature = values.temperature
     val humidity = values.humidity
     val soilMoisture = values.soilMoisture
@@ -130,6 +131,13 @@ private fun Information(values: Values, modifier: Modifier = Modifier) {
             }
         }
 
+    val launch = { setting : String, error : Short ->
+        val intent = Intent(activity, SettingActivity::class.java)
+        intent.putExtra("setting", setting)
+        intent.putExtra("error", error)
+        launcher.launch(intent)
+    }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(16.dp).widthIn(max = 500.dp)
@@ -144,11 +152,7 @@ private fun Information(values: Values, modifier: Modifier = Modifier) {
                 content = "${temperature}º",
                 icon = R.drawable.thermometer,
                 fontSize = 28.sp,
-                onClick = {
-                    val intent = Intent(activity, SettingActivity::class.java)
-                    intent.putExtra("setting", "temperature")
-                    launcher.launch(intent)
-                }
+                onClick = { launch("temperature", information.temperatureError) }
             )
             Sensor(
                 modifier = Modifier.fillMaxWidth(),
@@ -156,7 +160,7 @@ private fun Information(values: Values, modifier: Modifier = Modifier) {
                 content = "${humidity}%",
                 icon = R.drawable.water_droplet,
                 fontSize = 28.sp,
-                onClick = {}
+                onClick = { launch("humidity", information.humidityError) }
             )
         }
         Column(
@@ -169,7 +173,7 @@ private fun Information(values: Values, modifier: Modifier = Modifier) {
                 content = "${soilMoisture}%",
                 icon = R.drawable.moisture_soil,
                 fontSize = 28.sp,
-                onClick = {}
+                onClick = { launch("soilHumidity", information.soilMoistureError) }
             )
             Sensor(
                 modifier = Modifier.fillMaxWidth(),
@@ -177,7 +181,7 @@ private fun Information(values: Values, modifier: Modifier = Modifier) {
                 content = Measurement(light.toInt(), "lx").format(),
                 icon = R.drawable.light,
                 fontSize = 28.sp,
-                onClick = {}
+                onClick = { launch("light", information.lightError) }
             )
         }
     }
@@ -277,4 +281,4 @@ private fun format(value: Float, unit: String): String {
     return "${_value.roundToInt()} $_unit"
 }
 
-private fun format(value: Short, unit: String) : String = format(value.toFloat(), unit)
+private fun format(value: Short, unit: String): String = format(value.toFloat(), unit)

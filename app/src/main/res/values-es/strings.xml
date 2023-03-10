@@ -23,4 +23,7 @@
     <string name="enable_bluetooth">Activar Bluetooth</string>
     <string name="connected_to">Conectado a %s</string>
     <string name="request_permissions">Pedir permisos</string>
+    <string name="done">Listo</string>
+    <string name="select_time">Seleccionar tiempo</string>
+    <string name="time">Tiempo</string>
 </resources>
