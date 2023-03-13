@@ -50,6 +50,13 @@ class MainActivityViewModel : ViewModel() {
             Log.d("FLOW", "Updating values")
         }
     }
+    
+    fun setSettings(settings: Settings){
+        launch {
+            val request = Request.SetSettingsRequest(settings)
+            peripheral.request(request)
+        }
+    }
 
     private fun CoroutineScope.observe(peripheral: ArduinoPeripheral) {
         launch {
@@ -58,7 +65,7 @@ class MainActivityViewModel : ViewModel() {
         launch {
             peripheral.operations.collect {
                 when (it) {
-                    is Response.ValuesResponse -> _values.value = it.values.copyToNonFinite(_values.value)
+                    is Response.ValuesResponse -> _values.value = it.values.ifNegative(_values.value)
                     is Response.InformationResponse -> _information.value = it.information
                     is Response.SettingsResponse -> _settings.value = it.settings
                     else -> {}

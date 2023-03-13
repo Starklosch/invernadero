@@ -20,7 +20,7 @@ data class Settings(
 ) {
     fun toByteArray(): ByteArray {
         val buffer = allocate(bytes)
-        buffer.putShort(expectedLightMinutes)
+         buffer.putShort(expectedLightMinutes)
         buffer.putShort(lightIntensity)
         buffer.putShort(minLight)
         buffer.putShort(maxLight)
@@ -32,7 +32,7 @@ data class Settings(
         buffer.putShort(maxTemperature)
         return buffer.array()
     }
-
+    
     companion object {
         fun fromByteArray(array: ByteArray): Settings {
             val buffer = wrap(array)
@@ -61,7 +61,7 @@ data class Values(
     val temperature: ArduinoInt = 0
 ) {
 
-    fun copyToNonFinite(other: Values): Values {
+    fun ifNegative(other: Values): Values {
         val newLight = light.ifNegative(other.light)
         val newHumidity = humidity.ifNegative(other.humidity)
         val newSoilMoisture = soilMoisture.ifNegative(other.soilMoisture)

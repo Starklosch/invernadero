@@ -25,14 +25,19 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 
 class SettingActivity : ComponentActivity() {
+    const val EXTRA_SETTING = "setting"
+    const val EXTRA_ERROR = "error"
+    const val EXTRA_MIN = "min"
+    const val EXTRA_MAX = "max"
+
     var setting: String = ""
     var error: Float = 0f
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        intent?.getStringExtra("setting")?.let { setting = it }
-        intent?.getShortExtra("error", 0)?.let { error = it.toFloat() / 100f }
+        intent?.getStringExtra(EXTRA_SETTING)?.let { setting = it }
+        intent?.getShortExtra(EXTRA_ERROR, 0)?.let { error = it.toFloat() / 100f }
 
         setContent {
             InvernaderoTheme {
@@ -115,9 +120,9 @@ private fun Settings() {
             val max = toReadable(pos + offset, isLight)
 
             val intent = Intent()
-            intent.putExtra("setting", activity.setting)
-            intent.putExtra("min", min)
-            intent.putExtra("max", max)
+            intent.putExtra(EXTRA_SETTING, activity.setting)
+            intent.putExtra(EXTRA_MIN, min)
+            intent.putExtra(EXTRA_MAX, max)
             activity.setResult(Activity.RESULT_OK, intent)
             activity.finish()
         }) {

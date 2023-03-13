@@ -123,18 +123,25 @@ private fun Information(values: Values, information: Information, modifier: Modi
     val launcher =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-                val setting = result.data?.getStringExtra("setting")
-                val min = result.data?.getIntExtra("min", 0)
-                val max = result.data?.getIntExtra("max", 100)
+                val settingName = result.data?.getStringExtra(SettingActivity.EXTRA_SETTING)
+                val setting = Setting.fromName(settingName)
+                val min = result.data?.getIntExtra(SettingActivity.EXTRA_MIN, -1)
+                val max = result.data?.getIntExtra(SettingActivity.EXTRA_MAX, -1)
 
+                val settings = when (setting) {
+                    Light -> Setting(minLight = min, maxLight = max),
+                    Temperature -> Setting(minTemperature = min, maxTemperature = max),
+                    Temperature -> Setting(minHumidity = min, maxHumidity = max),
+                    Temperature -> Setting(minSoilMoisture = min, maxSoilMoisture = max)
+                }
                 Toast.makeText(activity, "$setting min $min, max $max", Toast.LENGTH_SHORT).show()
             }
         }
 
-    val launch = { setting : String, error : Short ->
+    val launch = { setting : Setting, error : Short ->
         val intent = Intent(activity, SettingActivity::class.java)
-        intent.putExtra("setting", setting)
-        intent.putExtra("error", error)
+         intent.putExtra(SettingActivity.EXTRA_SETTING, setting.name)
+         intent.putExtra(SettingActivity.EXTRA_ERROR, error)
         launcher.launch(intent)
     }
 
@@ -152,7 +159,7 @@ private fun Information(values: Values, information: Information, modifier: Modi
                 content = "${temperature}º",
                 icon = R.drawable.thermometer,
                 fontSize = 28.sp,
-                onClick = { launch("temperature", information.temperatureError) }
+                onClick = { launch(Temperature, information.temperatureError) }
             )
             Sensor(
                 modifier = Modifier.fillMaxWidth(),
@@ -160,7 +167,7 @@ private fun Information(values: Values, information: Information, modifier: Modi
                 content = "${humidity}%",
                 icon = R.drawable.water_droplet,
                 fontSize = 28.sp,
-                onClick = { launch("humidity", information.humidityError) }
+                onClick = { launch(Humidity, information.humidityError) }
             )
         }
         Column(
@@ -173,7 +180,7 @@ private fun Information(values: Values, information: Information, modifier: Modi
                 content = "${soilMoisture}%",
                 icon = R.drawable.moisture_soil,
                 fontSize = 28.sp,
-                onClick = { launch("soilHumidity", information.soilMoistureError) }
+                onClick = { launch(SoilHumidity, information.soilMoistureError) }
             )
             Sensor(
                 modifier = Modifier.fillMaxWidth(),
@@ -181,7 +188,7 @@ private fun Information(values: Values, information: Information, modifier: Modi
                 content = Measurement(light.toInt(), "lx").format(),
                 icon = R.drawable.light,
                 fontSize = 28.sp,
-                onClick = { launch("light", information.lightError) }
+                onClick = { launch(Light, information.lightError) }
             )
         }
     }
@@ -282,3 +289,14 @@ private fun format(value: Float, unit: String): String {
 }
 
 private fun format(value: Short, unit: String): String = format(value.toFloat(), unit)
+
+enum class Setting(val name : String){
+    Temperature("temperature"),
+    Light("light"),
+    Humidity("humidity"),
+    SoilHumidity("soilHumidity");
+    
+    companion object {
+        fun fromName(value: String) = Setting.values().first { it.name == value }
+    }
+}
