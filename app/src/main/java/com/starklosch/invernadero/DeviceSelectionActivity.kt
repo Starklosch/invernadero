@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.MultiplePermissionsState
@@ -80,7 +81,7 @@ class DeviceSelectionActivity : ComponentActivity() {
         val isAvailable = bluetoothAvailability is Bluetooth.Availability.Available
 
         val scanStatus by viewModel.scanStatus.collectAsStateWithLifecycle()
-        val refreshing = scanStatus is ScanStatus.Scanning
+        val refreshing = isAvailable && scanStatus is ScanStatus.Scanning
 
         val pullRefreshState =
             rememberPullRefreshState(refreshing, { if (isAvailable) viewModel.start() })
@@ -198,7 +199,9 @@ private fun BluetoothDevice(device: Advertisement) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            device.name?.let { Text(text = it) }
+            device.name?.let {
+                Text(text = it, fontWeight = FontWeight.Bold)
+            }
             Text(text = device.address)
         }
     }

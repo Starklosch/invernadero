@@ -52,12 +52,13 @@ class MainActivityViewModel : ViewModel() {
     }
     
     fun setSettings(settings: Settings){
-        launch {
+        _settings.value = settings
+        viewModelScope.launch {
             val request = Request.SetSettingsRequest(settings)
-            peripheral.request(request)
+            device.value?.request(request)
         }
     }
-
+    
     private fun CoroutineScope.observe(peripheral: ArduinoPeripheral) {
         launch {
             peripheral.state.collect { _state.value = it }
@@ -79,7 +80,7 @@ class MainActivityViewModel : ViewModel() {
             try {
                 peripheral.connect()
                 peripheral.request(Request.InformationRequest())
-//                peripheral.request(Request.SettingsRequest())
+                peripheral.request(Request.SettingsRequest())
             } catch (_: ConnectionLostException) {
 
             }
@@ -92,7 +93,7 @@ class MainActivityViewModel : ViewModel() {
 
         launch {
             try {
-                device.value!!.disconnect()
+                device.value?.disconnect()
             } catch (_: ConnectionLostException) {
 
             }

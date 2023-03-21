@@ -8,10 +8,6 @@
 * Byte transmission order: little endian.
 */
 
-// DEBUG
-#define print(x) Serial.print(x)
-#define println(x) Serial.println(x)
-
 // Pins
 #define RX_PIN 2
 #define TX_PIN 3
@@ -20,28 +16,28 @@
 #define SOIL_SENSOR A0
 #define LIGHT_SENSOR A1
 
+#define TIME_PIN 12
 #define HEAT_PIN 11
 #define COLD_PIN 10
 #define SOIL_PIN 8
 #define HUMIDITY_PIN 9
-#define LIGHT_PIN 5
 
 // Information - 8 bytes
-#define temperatureError 2
+#define temperatureError 3
 #define humidityError 5
-#define soilHumidityError 0
-#define lightError 25 // exponent
+#define soilHumidityError 3
+#define lightError 2 // factor
 
 typedef unsigned long time_t;
+typedef unsigned int uint;
 
 DHT dht(DHT_SENSOR, DHT11);
 SoftwareSerial HM10(TX_PIN, RX_PIN);
 
-// Settings - 20 bytes
+// Settings - 18 bytes
 int expectedLightMinutes = 120; // 2 * 2 bytes
-int lightIntensity = 0; 
-int minLight = 0;
-int maxLight = 100;
+uint minLight = 1;
+uint maxLight = 100;
 int minHumidity = 0;
 int maxHumidity = 100;
 int minSoilHumidity = 0;
@@ -51,8 +47,8 @@ int maxTemperature = 100; // 8 * 4 bytes
 
 const time_t dhtWaitMillis = 60000; // 1 minute
 
-const int dry = 1000; // value for dry sensor
-const int wet = 0; // value for wet sensor
+const int dry = 440; // value for dry sensor
+const int wet = 240; // value for wet sensor
 const int resistor = 10000;
 const int totalVoltage = 5;
 const int maxADC = 1023;
@@ -68,7 +64,8 @@ float soilHumidity = 0;
 float temperature = 0;
 
 int lightADC = 0;
-int lightMinutes = 0;
+time_t lightTimeMillis = 0;
+time_t lastTimeMillis = 0;
 
 void setup() {
     Serial.begin(9600);
@@ -76,15 +73,14 @@ void setup() {
 
     pinMode(LIGHT_SENSOR, INPUT);
     pinMode(SOIL_SENSOR, INPUT);
+    pinMode(TIME_PIN, OUTPUT);
     pinMode(HEAT_PIN, OUTPUT);
     pinMode(COLD_PIN, OUTPUT);
     pinMode(SOIL_PIN, OUTPUT);
     pinMode(HUMIDITY_PIN, OUTPUT);
-    pinMode(LIGHT_PIN, OUTPUT);
     
     dht.begin(9600);
-    HM10.begin(9600); 
-    delay(2000);
+    HM10.begin(9600);
 }
 
 void loop() {
@@ -93,59 +89,73 @@ void loop() {
     updateSoilHumidity();
     bluetoothControl();
 
-    if (humidity < minLight){
-        // Increase humidity
+    if (humidity < minHumidity){
+        // Aumentar humedad
         digitalWrite(HUMIDITY_PIN, HIGH);
-    }
-    else if (humidity > maxHumidity){
-        // Decrease humidity
     }
     else {
         digitalWrite(HUMIDITY_PIN, LOW);
     }
+    
+    if (humidity > maxHumidity){
+        // Disminuir humedad
+    }
+    else {
+        
+    }
 
     if (temperature < minTemperature){
-        // Increase Temperature
+        // Aumentar temperatura
         digitalWrite(HEAT_PIN, HIGH);
-    }
-    else if (temperature > maxTemperature){
-        // Decrease Temperature
-        digitalWrite(COLD_PIN, HIGH);
     }
     else {
         digitalWrite(HEAT_PIN, LOW);
+    }
+    
+    if (temperature > maxTemperature){
+        // Disminuir temperatura
+        digitalWrite(COLD_PIN, HIGH);
+    }
+    else {
         digitalWrite(COLD_PIN, LOW);
     }
-
-    if (light < minLight){
-        // Increase light
-        //digitalWrite(HEAT_PIN, 1);
+    
+    time_t now = millis();
+    if (light > minLight && light < maxLight){
+        time_t elapsed = now - lastTimeMillis;
+        lightTimeMillis += elapsed; 
     }
-
-    if (light > maxLight){
-        // Decrease light
+    
+    int lightTimeMinutes = lightTimeMillis / 60000;
+    if (lightTimeMinutes > expectedLightMinutes){
+        // Tiempo de luz completado
+        digitalWrite(TIME_PIN, LOW);
     }
+    else {
+        digitalWrite(TIME_PIN, HIGH);
+    }
+    lastTimeMillis = now;
 }
 
 void updateDHT(){
-    static time_t nextTimeUpdate = 0;
+    static time_t nextTimeUpdate = 3000;
     const time_t now = millis();
     if (now < nextTimeUpdate)
         return;
 
-    println("DHT");
+    Serial.println("Sensando humedad y temperatura");
   
     if (!dht.read())
-        println("Failed to read from DHT sensor!");
+        Serial.println("Falló la lectura del sensor DHT");
 
     humidity = dht.readHumidity();
     temperature = dht.readTemperature();
     
-    print("Humidity: ");
-    print(humidity);
-    print("%  Temperature: ");
-    print(temperature);
-    println("°C ");
+    Serial.print("Humidity: ");
+    Serial.print(humidity);
+    Serial.print("%  Temperature: ");
+    Serial.print(temperature);
+    Serial.println("°C ");
 
     nextTimeUpdate = now + dhtWaitMillis;
 }
@@ -156,18 +166,17 @@ void updateLight(){
     if (now < nextTimeUpdate)
         return;
 
-    println("luz");
+    Serial.println("Sensando luz");
   
     lightADC = analogRead(LIGHT_SENSOR);
     float totalResistance = (float)maxADC / lightADC * resistor;
     float ldrResistance = totalResistance - resistor;
     light = a * pow(10, b) * pow(ldrResistance, -c);
 
-    // Imprimimos por monitor serie el valor 
-    print(lectura);
-    print(" - ");
-    print(light, 0);
-    println(" lux");
+    Serial.print(lightADC);
+    Serial.print(" - ");
+    Serial.print(light, 0);
+    Serial.println(" lux");
 
     nextTimeUpdate = now + 1000;
 }
@@ -179,45 +188,42 @@ void updateSoilHumidity()
     if (now < nextTimeUpdate)
         return;
         
-    println("humedad de suelo");
+    Serial.println("Sensando humedad de suelo");
     int sensorVal = analogRead(A0);
 
-    // Sensor has a range of 239 to 595
-    // We want to translate this to a scale or 0% to 100%
-    // More info: https://www.arduino.cc/reference/en/language/functions/math/map/
     int percentageHumidity = map(sensorVal, wet, dry, 100, 0); 
     soilHumidity = percentageHumidity;
-    print(sensorVal);
-    print(" | ");
-    print(percentageHumidity);
-    println("%");
+    Serial.print(sensorVal);
+    Serial.print(" | ");
+    Serial.print(percentageHumidity);
+    Serial.println("%");
     
     nextTimeUpdate = now + 1000;
 }
 
 void bluetoothControl(){
-    HM10.listen();  // listen the HM10 port
+    HM10.listen();
   
     if (HM10.available() == 0)
         return;
     
     char data = HM10.read();
-    println(data);
-    if (data == 'V') { // V = Read Values
+    if (data == 'V') { // V = Leer valores
         readValues('V');
     }
-    else if (data == 'S'){ // S = Read Settings
+    else if (data == 'S'){ // S = Leer configuración
         readSettings('S');
     }
-    else if (data == 'W'){ // W = Set Settings
+    else if (data == 'W'){ // W = Escribir configuración
         setSettings();
     }
-    else if (data == 'I'){
+    else if (data == 'I'){ // I = Leer constantes
         readInformation('I');
     }
 }
 
 void readValues(char key){
+    Serial.println("Transmitiendo valores");
     HM10.write(key);
     sendInt(light);
     sendInt(humidity);
@@ -226,9 +232,9 @@ void readValues(char key){
 }
 
 void readSettings(char key){
+    Serial.println("Transmitiendo configuración");
     HM10.write(key);
     sendInt(expectedLightMinutes);
-    sendInt(lightIntensity);
     sendInt(minLight);
     sendInt(maxLight);
     sendInt(minHumidity);
@@ -240,8 +246,8 @@ void readSettings(char key){
 }
 
 void setSettings(){
+    Serial.println("Aplicando configuración");
     expectedLightMinutes = receiveInt();
-    lightIntensity = receiveInt();
     minLight = receiveInt();
     maxLight = receiveInt();
     minHumidity = receiveInt();
@@ -253,6 +259,7 @@ void setSettings(){
 }
 
 void readInformation(char key){
+    Serial.println("Transmitiendo constantes");
     HM10.write(key);
     sendInt(lightError);
     sendInt(humidityError);

@@ -8,7 +8,9 @@ import com.juul.kable.WriteType.WithoutResponse
 import com.juul.kable.characteristicOf
 import com.juul.kable.logs.Logging.Level.Events
 import com.starklosch.invernadero.Response.*
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.*
 
 private const val serviceUuid = "0000ffe0-0000-1000-8000-00805f9b34fb"
 private const val dataUuid = "0000ffe1-0000-1000-8000-00805f9b34fb"
@@ -46,9 +48,14 @@ class ArduinoPeripheral(
             }
         }
 
-    /** Set period, allowable range is 100-2550 ms. */
+    private val mutex = Mutex()
+
     suspend fun request(request: Request) {
-        val data = request.toByteArray()
-        peripheral.write(characteristic, data, WithoutResponse)
+        mutex.withLock {
+            val data = request.toByteArray()
+            peripheral.write(characteristic, data, WithoutResponse)
+            // wait between request
+            delay(200)
+        }
     }
 }

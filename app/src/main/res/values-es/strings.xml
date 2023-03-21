@@ -7,10 +7,12 @@
     <string name="next">Siguiente</string>
     <string name="previous">Anterior</string>
     <string name="devices">Dispositivos</string>
+    
     <string name="temperature">Temperatura</string>
     <string name="humidity">Humedad</string>
-    <string name="soilHumidity">Humedad de suelo</string>
+    <string name="soil_humidity">Humedad de suelo</string>
     <string name="light">Luz</string>
+    
     <string name="disconnect">Desconectar</string>
     <string name="connecting_to">Conectando a %s</string>
     <string name="unknown_device">dispostivo desconocido</string>
@@ -24,6 +26,7 @@
     <string name="connected_to">Conectado a %s</string>
     <string name="request_permissions">Pedir permisos</string>
     <string name="done">Listo</string>
+    
     <string name="select_time">Seleccionar tiempo</string>
     <string name="time">Tiempo</string>
 </resources>

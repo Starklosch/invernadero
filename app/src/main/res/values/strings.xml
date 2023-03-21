@@ -46,7 +46,7 @@
     <string name="devices">Devices</string>
     <string name="temperature">Temperature</string>
     <string name="humidity">Humidity</string>
-    <string name="soilHumidity">Soil humidity</string>
+    <string name="soil_humidity">Soil humidity</string>
     <string name="light">Light</string>
 
     <string name="title_activity_bluetooth">BluetoothActivity</string>
