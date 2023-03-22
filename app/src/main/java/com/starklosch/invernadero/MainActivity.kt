@@ -3,9 +3,8 @@
 package com.starklosch.invernadero
 
 import android.app.Activity
-import android.content.*
+import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -13,23 +12,30 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
-import androidx.compose.ui.platform.*
-import androidx.compose.ui.res.*
-import androidx.compose.ui.text.style.*
-import androidx.compose.ui.unit.*
-import androidx.compose.ui.text.*
-import androidx.compose.ui.text.font.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.juul.kable.State
+import com.starklosch.invernadero.extensions.parcelable
 import com.starklosch.invernadero.ui.theme.InvernaderoTheme
-import com.starklosch.invernadero.extensions.*
 import kotlinx.coroutines.delay
-import kotlin.math.*
 import kotlin.time.Duration.Companion.seconds
 
 class MainActivity : ComponentActivity() {
@@ -116,7 +122,7 @@ private fun AppContent(viewModel: MainActivityViewModel = viewModel()) {
 
 @Composable
 private fun StateIndicator(state: State, deviceName: String) {
-    val name = if (deviceName.isEmpty()) stringResource(R.string.unknown_device) else deviceName
+    val name = deviceName.ifEmpty { stringResource(R.string.unknown_device) }
     val resourceId = when (state) {
         is State.Connecting -> R.string.connecting_to
         is State.Connected -> R.string.connected_to
@@ -125,16 +131,17 @@ private fun StateIndicator(state: State, deviceName: String) {
     }
     
     val string = stringResource(resourceId)
+    val formatted = string.format(name)
     val start = string.indexOf('%')
-    if (start >= 0){
+    if (start < 0) {
+        Text(formatted)
+    } else {
         val spanStyles = listOf(
             AnnotatedString.Range(SpanStyle(fontWeight = FontWeight.Bold),
-            start = start,
-            end = start + name.length
-        ))
-        Text(AnnotatedString(string.format(name), spanStyles))
-    } else {
-        Text(string.format(name))
+                start = start,
+                end = start + name.length
+            ))
+        Text(AnnotatedString(formatted, spanStyles))
     }
 }
 
@@ -156,7 +163,7 @@ private fun Information(connected: Boolean, values: Values, information: Informa
 
                 val newSettings = when (setting) {
                     is Setting.Light ->
-                       settings.copy(minLight = setting.min, maxLight = setting.max, expectedLightMinutes = setting.minutes.toShort())
+                       settings.copy(minLight = setting.min, maxLight = setting.max, expectedLightMinutes = setting.minutes)
                     is Setting.Temperature -> settings.copy(minTemperature = setting.min, maxTemperature = setting.max)
                     is Setting.Humidity -> settings.copy(minHumidity = setting.min, maxHumidity = setting.max)
                     is Setting.SoilHumidity -> settings.copy(minSoilMoisture = setting.min, maxSoilMoisture = setting.max)
@@ -164,7 +171,6 @@ private fun Information(connected: Boolean, values: Values, information: Informa
                 }
                 
                 onSettingsChanged(newSettings)
-               // Toast.makeText(activity, "Min ${setting.min.toUShort()}, max ${setting.max.toUShort()}", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -303,16 +309,3 @@ private fun TopBar() {
     val context = LocalContext.current
     TopAppBar(title = { Text(text = context.resources.getString(R.string.app_name)) })
 }
-
-private fun format(value: Float, unit: String): String {
-    var _value = value
-    var _unit = unit
-    if (value > 1000) {
-        _value = value / 1000
-        _unit = "k" + unit
-    }
-
-    return "${_value.roundToInt()} $_unit"
-}
-
-private fun format(value: Short, unit: String): String = format(value.toFloat(), unit)

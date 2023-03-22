@@ -1,38 +1,32 @@
 package com.starklosch.invernadero
 
+//import androidx.compose.ui.res.*
+import android.os.Parcelable
+import androidx.annotation.StringRes
+import androidx.compose.runtime.Composable
+import com.starklosch.invernadero.extensions.ifNegative
+import kotlinx.parcelize.Parcelize
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-//import androidx.compose.ui.res.*
-import androidx.compose.runtime.*
-import androidx.annotation.*
-import android.os.Parcelable
-import kotlinx.parcelize.Parcelize
 
 sealed class Setting(@StringRes val id: Int, open val min: Short, open val max: Short) : Parcelable {
     @Composable
     fun string() : String = androidx.compose.ui.res.stringResource(id)
     
     @Parcelize
-    class Invalid() : Setting(0, -1, -1) {
-        
-    }
-    
+    class Invalid : Setting(0, -1, -1)
+
     @Parcelize
-    class Temperature(override val min: Short, override val max: Short) : Setting(R.string.temperature, min, max){
-        
-    }
+    class Temperature(override val min: Short, override val max: Short) : Setting(R.string.temperature, min, max)
+
     @Parcelize
-    class Light(override val min: Short, override val max: Short, val minutes: Short) : Setting(R.string.light, min, max){
-        
-    }
+    class Light(override val min: Short, override val max: Short, val minutes: Short) : Setting(R.string.light, min, max)
+
     @Parcelize
-    class Humidity(override val min: Short, override val max: Short) : Setting(R.string.humidity, min, max){
-        
-    }
+    class Humidity(override val min: Short, override val max: Short) : Setting(R.string.humidity, min, max)
+
     @Parcelize
-    class SoilHumidity(override val min: Short, override val max: Short) : Setting(R.string.soil_humidity, min, max){
-        
-    }
+    class SoilHumidity(override val min: Short, override val max: Short) : Setting(R.string.soil_humidity, min, max)
 }
 /*
 
@@ -64,7 +58,7 @@ data class Settings(
     //val light = Setting.Light(minLight, maxLight, expectedLightMinutes)
     //val temperature = Setting.Light(minTemperature, maxTemperature)
     //val humidity = Setting.Light(minHumidity, maxHumidity)
-    //val soilHumiity = Setting.Light(minSoilHumidity, maxSoilHumidity)
+    //val soilHumidity = Setting.Light(minSoilHumidity, maxSoilHumidity)
     
     fun toByteArray(): ByteArray {
         val buffer = allocate(bytes)

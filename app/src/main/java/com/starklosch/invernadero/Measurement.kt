@@ -1,3 +1,5 @@
+@file:Suppress("MemberVisibilityCanBePrivate")
+
 package com.starklosch.invernadero
 
 import kotlin.math.log10

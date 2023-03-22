@@ -1,4 +1,4 @@
-// https://github.com/JuulLabs/sensortag/blob/55288ed1e79fe0ed286ea2950a2f9a45b1f8706b/app/src/commonMain/kotlin/CoroutineScope.kt
+// Source: https://github.com/JuulLabs/sensortag/blob/55288ed1e79fe0ed286ea2950a2f9a45b1f8706b/app/src/commonMain/kotlin/CoroutineScope.kt
 package com.starklosch.invernadero.extensions
 
 import kotlinx.coroutines.CancellationException

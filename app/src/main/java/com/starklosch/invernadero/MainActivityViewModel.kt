@@ -7,6 +7,7 @@ import com.juul.kable.ConnectionLostException
 import com.juul.kable.State
 import com.juul.kable.State.Disconnected
 import com.juul.kable.peripheral
+import com.starklosch.invernadero.Response.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -66,9 +67,9 @@ class MainActivityViewModel : ViewModel() {
         launch {
             peripheral.operations.collect {
                 when (it) {
-                    is Response.ValuesResponse -> _values.value = it.values.ifNegative(_values.value)
-                    is Response.InformationResponse -> _information.value = it.information
-                    is Response.SettingsResponse -> _settings.value = it.settings
+                    is ValuesResponse -> _values.value = it.values.ifNegative(_values.value)
+                    is InformationResponse -> _information.value = it.information
+                    is SettingsResponse -> _settings.value = it.settings
                     else -> {}
                 }
             }

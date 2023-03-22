@@ -9,12 +9,12 @@ enum class OperationType(val id: Byte) {
     SetSettings('W'.code.toByte());
 
     companion object {
-        fun fromByte(value: Byte) = OperationType.values().first { it.id == value }
+        fun fromByte(value: Byte?) = OperationType.values().firstOrNull { it.id == value }
     }
 }
 
 sealed class Response {
-    class InvalidResponse : Response()
+    object InvalidResponse : Response()
 
     class SettingsResponse(data: ByteArray = byteArrayOf()) : Response() {
         init {
@@ -45,7 +45,7 @@ sealed class Response {
 }
 
 
-sealed class Request(val operationType: OperationType, val data: ByteArray = byteArrayOf()){
+sealed class Request(private val operationType: OperationType, private val data: ByteArray = byteArrayOf()){
     fun toByteArray(): ByteArray {
         val buffer = ByteBuffer.allocate(1 + data.size)
         buffer.put(operationType.id)

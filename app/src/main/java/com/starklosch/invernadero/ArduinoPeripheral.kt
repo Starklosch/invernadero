@@ -7,10 +7,11 @@ import com.juul.kable.Scanner
 import com.juul.kable.WriteType.WithoutResponse
 import com.juul.kable.characteristicOf
 import com.juul.kable.logs.Logging.Level.Events
-import com.starklosch.invernadero.Response.*
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.sync.*
+import com.starklosch.invernadero.Response.InvalidResponse
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 private const val serviceUuid = "0000ffe0-0000-1000-8000-00805f9b34fb"
 private const val dataUuid = "0000ffe1-0000-1000-8000-00805f9b34fb"
@@ -35,16 +36,18 @@ class ArduinoPeripheral(
 
     val operations = peripheral
         .observe(characteristic).map {
-            if (it.isEmpty())
-                return@map InvalidResponse()
-
-            val firstByte = it.first()
+            val firstByte = it.firstOrNull()
             val operationType = OperationType.fromByte(firstByte)
-            return@map when (operationType){
-                OperationType.ReadValues -> ValuesResponse(it.copyOfRange(1, it.size))
-                OperationType.ReadSettings -> SettingsResponse(it.copyOfRange(1, it.size))
-                OperationType.ReadInformation -> InformationResponse(it.copyOfRange(1, it.size))
-                else -> InvalidResponse()
+            when (operationType){
+                OperationType.ReadValues -> Response.ValuesResponse(it.copyOfRange(1, it.size))
+                OperationType.ReadSettings -> Response.SettingsResponse(it.copyOfRange(1, it.size))
+                OperationType.ReadInformation -> Response.InformationResponse(
+                    it.copyOfRange(
+                        1,
+                        it.size
+                    )
+                )
+                else -> InvalidResponse
             }
         }
 
