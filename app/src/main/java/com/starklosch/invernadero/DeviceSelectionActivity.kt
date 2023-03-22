@@ -7,9 +7,8 @@
 package com.starklosch.invernadero
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Activity
-import android.bluetooth.*
+import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -25,14 +24,19 @@ import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.google.accompanist.permissions.*
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.MultiplePermissionsState
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.juul.kable.Advertisement
 import com.juul.kable.Bluetooth
 import com.starklosch.invernadero.ui.theme.InvernaderoTheme
@@ -56,14 +60,12 @@ class DeviceSelectionActivity : ComponentActivity() {
         }
     }
 
-    @SuppressLint("MissingPermission")
     override fun onPause() {
         super.onPause()
         viewModel.stop()
         viewModel.clear()
     }
 
-    @SuppressLint("MissingPermission")
     @Composable
     private fun Main() {
         val bluetoothPermission = rememberMultiplePermissionsState(
@@ -79,7 +81,7 @@ class DeviceSelectionActivity : ComponentActivity() {
         val isAvailable = bluetoothAvailability is Bluetooth.Availability.Available
 
         val scanStatus by viewModel.scanStatus.collectAsStateWithLifecycle()
-        val refreshing = scanStatus is ScanStatus.Scanning
+        val refreshing = isAvailable && scanStatus is ScanStatus.Scanning
 
         val pullRefreshState =
             rememberPullRefreshState(refreshing, { if (isAvailable) viewModel.start() })
@@ -113,7 +115,6 @@ class DeviceSelectionActivity : ComponentActivity() {
         }
     }
 
-    @SuppressLint("MissingPermission")
     @Composable
     private fun ShowDevices() {
         val discoveredDevices by viewModel.advertisements.collectAsStateWithLifecycle()
@@ -123,7 +124,7 @@ class DeviceSelectionActivity : ComponentActivity() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             items(discoveredDevices) {
-                BluetoothDeviceEntry(it)
+                BluetoothDevice(it)
             }
         }
     }
@@ -175,25 +176,13 @@ private fun PermissionRequest(bluetoothPermission: MultiplePermissionsState) {
             Text("No permission")
 
         Button(onClick = { bluetoothPermission.launchMultiplePermissionRequest() }) {
-            Text("Request")
+            Text(stringResource(R.string.request_permissions))
         }
     }
-//    item {
-//        Text("Missing permissions:")
-//    }
-//    items(bluetoothScanPermission.revokedPermissions) {
-//        Text("- ${it.permission.split('.').last()}")
-//    }
-//    item {
-//        Button(onClick = { bluetoothScanPermission.launchMultiplePermissionRequest() }) {
-//            Text("Request")
-//        }
-//    }
 }
 
-@SuppressLint("MissingPermission")
 @Composable
-private fun BluetoothDeviceEntry(device: Advertisement) {
+private fun BluetoothDevice(device: Advertisement) {
     val activity = LocalContext.current as Activity
 
     Card(
@@ -210,7 +199,9 @@ private fun BluetoothDeviceEntry(device: Advertisement) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            device.name?.let { Text(text = it) }
+            device.name?.let {
+                Text(text = it, fontWeight = FontWeight.Bold)
+            }
             Text(text = device.address)
         }
     }

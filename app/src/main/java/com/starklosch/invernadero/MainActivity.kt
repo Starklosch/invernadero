@@ -1,10 +1,11 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, kotlin.time.ExperimentalTime::class)
 
 package com.starklosch.invernadero
 
 import android.app.Activity
 import android.content.*
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -16,19 +17,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.*
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.*
 import androidx.compose.ui.unit.*
+import androidx.compose.ui.text.*
+import androidx.compose.ui.text.font.*
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.juul.kable.State
-import android.widget.Toast
-import androidx.compose.ui.text.style.*
 import com.starklosch.invernadero.ui.theme.InvernaderoTheme
+import com.starklosch.invernadero.extensions.*
 import kotlinx.coroutines.delay
-import kotlin.math.round
-import kotlin.math.roundToInt
+import kotlin.math.*
+import kotlin.time.Duration.Companion.seconds
 
 class MainActivity : ComponentActivity() {
 
@@ -48,7 +50,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Preview
 @Composable
 private fun Main() {
     Scaffold(
@@ -66,11 +67,15 @@ private fun Main() {
 
 }
 
+private val valueRefreshTime = 5.seconds
+
 @Composable
 private fun AppContent(viewModel: MainActivityViewModel = viewModel()) {
     val state by viewModel.connectionState.collectAsStateWithLifecycle()
     val deviceName by viewModel.deviceName.collectAsStateWithLifecycle()
     val values by viewModel.values.collectAsStateWithLifecycle()
+    val information by viewModel.information.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
 
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
@@ -78,14 +83,22 @@ private fun AppContent(viewModel: MainActivityViewModel = viewModel()) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (state is State.Connected) {
                 viewModel.updateValues()
-                delay(1500)
+                delay(valueRefreshTime)
             }
         }
     }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         StateIndicator(state, deviceName)
-        Information(values)
+        Information(
+            connected = state is State.Connected,
+            values = values,
+            information = information,
+            settings = settings,
+            onSettingsChanged = {
+                viewModel.setSettings(it)
+            }
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth(),
@@ -110,12 +123,23 @@ private fun StateIndicator(state: State, deviceName: String) {
         is State.Disconnecting -> R.string.disconnecting_from
         is State.Disconnected -> R.string.disconnected
     }
-
-    Text(stringResource(resourceId, name))
+    
+    val string = stringResource(resourceId)
+    val start = string.indexOf('%')
+    if (start >= 0){
+        val spanStyles = listOf(
+            AnnotatedString.Range(SpanStyle(fontWeight = FontWeight.Bold),
+            start = start,
+            end = start + name.length
+        ))
+        Text(AnnotatedString(string.format(name), spanStyles))
+    } else {
+        Text(string.format(name))
+    }
 }
 
 @Composable
-private fun Information(values: Values, modifier: Modifier = Modifier) {
+private fun Information(connected: Boolean, values: Values, information: Information, settings: Settings, onSettingsChanged: (Settings) -> Unit, modifier: Modifier = Modifier) {
     val temperature = values.temperature
     val humidity = values.humidity
     val soilMoisture = values.soilMoisture
@@ -125,21 +149,34 @@ private fun Information(values: Values, modifier: Modifier = Modifier) {
     val launcher =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-                val setting = result.data?.getStringExtra("setting")
-                val min = result.data?.getIntExtra("min", 0)
-                val max = result.data?.getIntExtra("max", 100)
+                val setting : Setting? = result.data?.parcelable(SettingActivity.EXTRA_SETTING)
                 
-                Toast.makeText(activity, "$setting min $min, max $max", Toast.LENGTH_SHORT).show()
+                if (setting == null || setting is Setting.Invalid)
+                    return@rememberLauncherForActivityResult
+
+                val newSettings = when (setting) {
+                    is Setting.Light ->
+                       settings.copy(minLight = setting.min, maxLight = setting.max, expectedLightMinutes = setting.minutes.toShort())
+                    is Setting.Temperature -> settings.copy(minTemperature = setting.min, maxTemperature = setting.max)
+                    is Setting.Humidity -> settings.copy(minHumidity = setting.min, maxHumidity = setting.max)
+                    is Setting.SoilHumidity -> settings.copy(minSoilMoisture = setting.min, maxSoilMoisture = setting.max)
+                    else -> Settings()
+                }
+                
+                onSettingsChanged(newSettings)
+               // Toast.makeText(activity, "Min ${setting.min.toUShort()}, max ${setting.max.toUShort()}", Toast.LENGTH_SHORT).show()
             }
         }
 
+    val launch = { setting : Setting, error : Short ->
+        if (connected) {
+            val intent = Intent(activity, SettingActivity::class.java)
+            intent.putExtra(SettingActivity.EXTRA_SETTING, setting)
+            intent.putExtra(SettingActivity.EXTRA_ERROR, error)
+            launcher.launch(intent)
+        }
+    }
 
-    val columnMinWidth = 150.dp
-    val columnMaxWidth = 240.dp
- /*   Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(16.dp).widthIn(max = 500.dp)
-    ) {*/
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(16.dp).widthIn(max = 500.dp)
@@ -147,52 +184,42 @@ private fun Information(values: Values, modifier: Modifier = Modifier) {
         Column(
             modifier = Modifier
                 .weight(1f, false)
-             //   .widthIn(max = columnMaxWidth)
         ) {
             Sensor(
-                title = stringResource(R.string.temperature),
+                modifier = Modifier.fillMaxWidth(),
                 content = "${temperature}º",
                 icon = R.drawable.thermometer,
-                onClick = {
-                    val intent = Intent(activity, SettingActivity::class.java)
-                    intent.putExtra("setting", "temperature")
-                    launcher.launch(intent)
-                }
+                fontSize = 28.sp,
+                onClick = { launch(Setting.Temperature(settings.minTemperature, settings.maxTemperature), information.temperatureError) }
             )
             Sensor(
-                title = stringResource(R.string.humidity),
+                modifier = Modifier.fillMaxWidth(),
                 content = "${humidity}%",
                 icon = R.drawable.water_droplet,
-                onClick = {}
+                fontSize = 28.sp,
+                onClick = { launch(Setting.Humidity(settings.minHumidity, settings.maxHumidity), information.humidityError) }
             )
         }
         Column(
             modifier = Modifier
                 .weight(1f, false)
-           //     .widthIn(max = columnMaxWidth)
         ) {
             Sensor(
-                title = stringResource(R.string.soilHumidity),
+                modifier = Modifier.fillMaxWidth(),
                 content = "${soilMoisture}%",
                 icon = R.drawable.moisture_soil,
-                onClick = {}
+                fontSize = 28.sp,
+                onClick = { launch(Setting.SoilHumidity(settings.minSoilMoisture, settings.maxSoilMoisture), information.soilMoistureError) }
             )
             Sensor(
-                title = stringResource(R.string.light),
-                content = format(light, "lx"),
+                modifier = Modifier.fillMaxWidth(),
+                content = Measurement(light.toInt(), "lx").format(),
                 icon = R.drawable.light,
-                onClick = {}
+                fontSize = 28.sp,
+                onClick = { launch(Setting.Light(settings.minLight, settings.maxLight, settings.expectedLightMinutes), information.lightError) }
             )
         }
     }
-     /*   Sensor(
-            title = stringResource(R.string.light),
-            content = format(light, "s"),
-            icon = R.drawable.light,
-            onClick = {},
-            modifier = Modifier.fillMaxWidth(0.5f)
-        )
-    }*/
 }
 
 @Composable
@@ -239,11 +266,11 @@ private fun ConnectionButton(
 
 @Composable
 private fun Sensor(
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
-    title: String = "Test",
     @DrawableRes icon: Int = R.drawable.water_droplet,
     content: String = "100%",
-    modifier: Modifier = Modifier.fillMaxWidth()
+    fontSize: TextUnit = 28.sp
 ) {
     Card(
         onClick = onClick,
@@ -252,7 +279,6 @@ private fun Sensor(
             .then(modifier)
     ) {
         Row(
-            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(16.dp).fillMaxWidth()
         ) {
@@ -264,17 +290,13 @@ private fun Sensor(
             Spacer(Modifier.width(16.dp))
             Text(
                 text = content,
+                fontSize = fontSize,
                 textAlign = TextAlign.Center,
-                fontSize = 32.sp,
                 modifier = Modifier.weight(1f)
             )
         }
-
     }
 }
-
-private fun roundDecimals(number: Float) =
-    (round(number * 100) / 100).toString()
 
 @Composable
 private fun TopBar() {
@@ -293,4 +315,4 @@ private fun format(value: Float, unit: String): String {
     return "${_value.roundToInt()} $_unit"
 }
 
-private fun format(value: Short, unit: String) : String = format(value.toFloat(), unit)
+private fun format(value: Short, unit: String): String = format(value.toFloat(), unit)

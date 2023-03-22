@@ -50,7 +50,15 @@ class MainActivityViewModel : ViewModel() {
             Log.d("FLOW", "Updating values")
         }
     }
-
+    
+    fun setSettings(settings: Settings){
+        _settings.value = settings
+        viewModelScope.launch {
+            val request = Request.SetSettingsRequest(settings)
+            device.value?.request(request)
+        }
+    }
+    
     private fun CoroutineScope.observe(peripheral: ArduinoPeripheral) {
         launch {
             peripheral.state.collect { _state.value = it }
@@ -58,7 +66,7 @@ class MainActivityViewModel : ViewModel() {
         launch {
             peripheral.operations.collect {
                 when (it) {
-                    is Response.ValuesResponse -> _values.value = it.values.copyToNonFinite(_values.value)
+                    is Response.ValuesResponse -> _values.value = it.values.ifNegative(_values.value)
                     is Response.InformationResponse -> _information.value = it.information
                     is Response.SettingsResponse -> _settings.value = it.settings
                     else -> {}
@@ -72,7 +80,7 @@ class MainActivityViewModel : ViewModel() {
             try {
                 peripheral.connect()
                 peripheral.request(Request.InformationRequest())
-//                peripheral.request(Request.SettingsRequest())
+                peripheral.request(Request.SettingsRequest())
             } catch (_: ConnectionLostException) {
 
             }
@@ -85,7 +93,7 @@ class MainActivityViewModel : ViewModel() {
 
         launch {
             try {
-                device.value!!.disconnect()
+                device.value?.disconnect()
             } catch (_: ConnectionLostException) {
 
             }

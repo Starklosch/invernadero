@@ -4,14 +4,14 @@
       "file": "/storage/emulated/0/invernadero/app/src/main/java/com/starklosch/invernadero/SettingActivity.kt",
       "selection": {
         "end": {
-          "column": 19,
+          "column": 43,
           "index": -1,
-          "line": 91
+          "line": 187
         },
         "start": {
-          "column": 19,
+          "column": 43,
           "index": -1,
-          "line": 91
+          "line": 187
         }
       }
     },
@@ -19,47 +19,17 @@
       "file": "/storage/emulated/0/invernadero/app/src/main/java/com/starklosch/invernadero/MainActivity.kt",
       "selection": {
         "end": {
-          "column": 4,
+          "column": 17,
           "index": -1,
-          "line": 145
+          "line": 166
         },
         "start": {
-          "column": 4,
+          "column": 17,
           "index": -1,
-          "line": 145
-        }
-      }
-    },
-    {
-      "file": "/storage/emulated/0/invernadero/app/src/main/java/com/starklosch/invernadero/ArduinoData.kt",
-      "selection": {
-        "end": {
-          "column": 18,
-          "index": -1,
-          "line": 56
-        },
-        "start": {
-          "column": 18,
-          "index": -1,
-          "line": 56
-        }
-      }
-    },
-    {
-      "file": "/storage/emulated/0/invernadero/app/src/main/java/com/starklosch/invernadero/extensions/Float.kt",
-      "selection": {
-        "end": {
-          "column": 41,
-          "index": -1,
-          "line": 6
-        },
-        "start": {
-          "column": 41,
-          "index": -1,
-          "line": 6
+          "line": 166
         }
       }
     }
   ],
-  "selectedFile": "/storage/emulated/0/invernadero/app/src/main/java/com/starklosch/invernadero/ArduinoData.kt"
+  "selectedFile": "/storage/emulated/0/invernadero/app/src/main/java/com/starklosch/invernadero/SettingActivity.kt"
 }
