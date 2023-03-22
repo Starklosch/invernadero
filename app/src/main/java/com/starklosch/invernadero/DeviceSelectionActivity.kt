@@ -69,10 +69,7 @@ class DeviceSelectionActivity : ComponentActivity() {
     @Composable
     private fun Main() {
         val bluetoothPermission = rememberMultiplePermissionsState(
-            listOf(
-                Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.BLUETOOTH_SCAN
-            )
+            getBluetoothPermissions()
         )
 
         val bluetoothAvailability by Bluetooth.availability.collectAsStateWithLifecycle(
@@ -173,7 +170,12 @@ private fun PermissionRequest(bluetoothPermission: MultiplePermissionsState) {
         if (bluetoothPermission.shouldShowRationale)
             Text("Please grant permission")
         else
+        {
+            for(it in bluetoothPermission.revokedPermissions) {
+                Text("- ${it.permission.split('.').last()}")
+            }
             Text("No permission")
+        }
 
         Button(onClick = { bluetoothPermission.launchMultiplePermissionRequest() }) {
             Text(stringResource(R.string.request_permissions))

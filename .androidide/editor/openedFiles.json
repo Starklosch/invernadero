@@ -1,17 +1,17 @@
 {
   "allFiles": [
     {
-      "file": "/storage/emulated/0/invernadero/app/src/main/java/com/starklosch/invernadero/SettingActivity.kt",
+      "file": "/storage/emulated/0/invernadero/app/src/main/AndroidManifest.xml",
       "selection": {
         "end": {
-          "column": 43,
+          "column": 4,
           "index": -1,
-          "line": 187
+          "line": 24
         },
         "start": {
-          "column": 43,
+          "column": 4,
           "index": -1,
-          "line": 187
+          "line": 24
         }
       }
     },
@@ -19,17 +19,62 @@
       "file": "/storage/emulated/0/invernadero/app/src/main/java/com/starklosch/invernadero/MainActivity.kt",
       "selection": {
         "end": {
-          "column": 17,
+          "column": 0,
           "index": -1,
-          "line": 166
+          "line": 0
         },
         "start": {
-          "column": 17,
+          "column": 0,
           "index": -1,
-          "line": 166
+          "line": 0
+        }
+      }
+    },
+    {
+      "file": "/storage/emulated/0/invernadero/app/src/main/java/com/starklosch/invernadero/DeviceSelectionActivity.kt",
+      "selection": {
+        "end": {
+          "column": 31,
+          "index": -1,
+          "line": 173
+        },
+        "start": {
+          "column": 31,
+          "index": -1,
+          "line": 173
+        }
+      }
+    },
+    {
+      "file": "/storage/emulated/0/invernadero/app/src/main/java/com/starklosch/invernadero/Bluetooth.kt",
+      "selection": {
+        "end": {
+          "column": 4,
+          "index": -1,
+          "line": 14
+        },
+        "start": {
+          "column": 4,
+          "index": -1,
+          "line": 14
+        }
+      }
+    },
+    {
+      "file": "/storage/emulated/0/invernadero/app/src/main/java/com/starklosch/invernadero/extensions/Intent.kt",
+      "selection": {
+        "end": {
+          "column": 57,
+          "index": -1,
+          "line": 8
+        },
+        "start": {
+          "column": 29,
+          "index": -1,
+          "line": 8
         }
       }
     }
   ],
-  "selectedFile": "/storage/emulated/0/invernadero/app/src/main/java/com/starklosch/invernadero/SettingActivity.kt"
+  "selectedFile": "/storage/emulated/0/invernadero/app/src/main/java/com/starklosch/invernadero/Bluetooth.kt"
 }

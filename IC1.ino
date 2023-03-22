@@ -79,8 +79,12 @@ void setup() {
     pinMode(SOIL_PIN, OUTPUT);
     pinMode(HUMIDITY_PIN, OUTPUT);
     
-    dht.begin(9600);
     HM10.begin(9600);
+//    HM10.println("AT+NAMEBT Invernadero");
+   // HM10.println("AT+ROLES");
+ //   HM10.println("AT+DCOV+");
+    
+    dht.begin(9600);
 }
 
 void loop() {
