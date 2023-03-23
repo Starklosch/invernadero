@@ -35,7 +35,7 @@ class DeviceSelectionViewModel : ViewModel() {
     private val _advertisements = MutableStateFlow<List<Advertisement>>(emptyList())
     val advertisements = _advertisements.asStateFlow()
 
-    fun start() {
+    fun startScanning() {
         if (_scanStatus.value == Scanning) return // Scan already in progress.
         _scanStatus.value = Scanning
         clear()
@@ -56,7 +56,7 @@ class DeviceSelectionViewModel : ViewModel() {
         }
     }
 
-    fun stop() {
+    fun stopScanning() {
         scanScope.cancelChildren()
     }
 

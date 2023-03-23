@@ -68,5 +68,7 @@
     <string name="request_permissions">Request permissions</string>
     <string name="done">Done</string>
     <string name="select_time">Select time</string>
-    <string name="time">Time</string>
+    <string name="light_time">Light time</string>
+    <string name="hours">hours</string>
+    <string name="minutes">minutes</string>
 </resources>

@@ -7,6 +7,7 @@ import com.juul.kable.ConnectionLostException
 import com.juul.kable.State
 import com.juul.kable.State.Disconnected
 import com.juul.kable.peripheral
+import com.starklosch.invernadero.Request.*
 import com.starklosch.invernadero.Response.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,7 +48,7 @@ class MainActivityViewModel : ViewModel() {
 
     fun updateValues() {
         viewModelScope.launch {
-            device.value?.request(Request.ValuesRequest())
+            device.value?.request(ValuesRequest())
             Log.d("FLOW", "Updating values")
         }
     }
@@ -55,7 +56,7 @@ class MainActivityViewModel : ViewModel() {
     fun setSettings(settings: Settings){
         _settings.value = settings
         viewModelScope.launch {
-            val request = Request.SetSettingsRequest(settings)
+            val request = SetSettingsRequest(settings)
             device.value?.request(request)
         }
     }
@@ -80,8 +81,8 @@ class MainActivityViewModel : ViewModel() {
         launch {
             try {
                 peripheral.connect()
-                peripheral.request(Request.InformationRequest())
-                peripheral.request(Request.SettingsRequest())
+                peripheral.request(InformationRequest())
+                peripheral.request(SettingsRequest())
             } catch (_: ConnectionLostException) {
 
             }

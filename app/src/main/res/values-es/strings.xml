@@ -28,5 +28,7 @@
     <string name="done">Listo</string>
     
     <string name="select_time">Seleccionar tiempo</string>
-    <string name="time">Tiempo</string>
+    <string name="light_time">Tiempo de luz</string>
+    <string name="hours">horas</string>
+    <string name="minutes">minutos</string>
 </resources>

@@ -8,7 +8,7 @@
 #define RX_PIN 2
 #define TX_PIN 3
 
-#define DHT_SENSOR 4     // Digital pin connected to the DHT sensor
+#define DHT_SENSOR 4
 #define SOIL_SENSOR A0
 #define LIGHT_SENSOR A1
 
@@ -31,7 +31,7 @@ DHT dht(DHT_SENSOR, DHT11);
 SoftwareSerial HM10(TX_PIN, RX_PIN);
 
 // Settings - 18 bytes
-int expectedLightMinutes = 120; // 2 * 2 bytes
+int expectedLightMinutes = 120;
 uint minLight = 1;
 uint maxLight = 100;
 int minHumidity = 0;
@@ -39,12 +39,12 @@ int maxHumidity = 100;
 int minSoilHumidity = 0;
 int maxSoilHumidity = 100;
 int minTemperature = 0;
-int maxTemperature = 100; // 8 * 4 bytes
+int maxTemperature = 100;
 
-const time_t dhtWaitMillis = 60000; // 1 minute
+const time_t dhtWaitMillis = 5000; // 5 segundos
 
-const int dry = 440; // value for dry sensor
-const int wet = 240; // value for wet sensor
+const int dry = 640; // valor para sensor seco
+const int wet = 240; // valor para sensor húmedo
 const int resistor = 10000;
 const int totalVoltage = 5;
 const int maxADC = 1023;
@@ -71,7 +71,6 @@ void setup() {
     
     HM10.begin(9600);  
     dht.begin(9600);
-    delay(3000);
 }
 
 void setupPins(){
@@ -120,15 +119,30 @@ void loop() {
     else {
         digitalWrite(COLD_PIN, LOW);
     }
+
+    if (soilHumidity < minSoilHumidity){
+        // Aumentar humedad de suelo
+        digitalWrite(SOIL_PIN, HIGH);
+    }
+    else {
+        digitalWrite(SOIL_PIN, LOW);
+    }
+    
+    if (soilHumidity > maxSoilHumidity){
+        // Disminuir humedad de suelo
+    }
+    else {
+        
+    }
     
     time_t now = millis();
-    if (light > minLight && light < maxLight){
+    if (light >= minLight && light <= maxLight){
         time_t elapsed = now - lastTimeMillis;
         lightTimeMillis += elapsed; 
     }
     
     int lightTimeMinutes = lightTimeMillis / 60000;
-    if (lightTimeMinutes > expectedLightMinutes){
+    if (lightTimeMinutes >= expectedLightMinutes){
         // Tiempo de luz completado
         digitalWrite(TIME_PIN, LOW);
     }

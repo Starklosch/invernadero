@@ -3,12 +3,12 @@
 package com.starklosch.invernadero
 
 import android.app.Activity
-import android.app.TimePickerDialog
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.*
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.starklosch.invernadero.Setting.*
 import com.starklosch.invernadero.extensions.*
 import com.starklosch.invernadero.ui.theme.InvernaderoTheme
@@ -44,12 +45,12 @@ class SettingActivity : ComponentActivity() {
             val min = fromReadable(it.min.toUShort(), isLight)
             val max = fromReadable(it.max.toUShort(), isLight)
             value = (min + max) / 2f
-         //   Toast.makeText(this, "$min (${it.min}) - $max (${it.max}): $value", Toast.LENGTH_SHORT).show()
+            //   Toast.makeText(this, "$min (${it.min}) - $max (${it.max}): $value", Toast.LENGTH_SHORT).show()
         }
         intent?.getShortExtra(EXTRA_ERROR, 0)?.let {
             error = fromReadable(it, setting is Light)
         }
-        
+
         setContent {
             InvernaderoTheme {
                 // A surface container using the 'background' color from the theme
@@ -62,7 +63,7 @@ class SettingActivity : ComponentActivity() {
             }
         }
     }
-    
+
     companion object {
         const val EXTRA_SETTING = "setting"
         const val EXTRA_ERROR = "error"
@@ -97,60 +98,81 @@ private fun Display() {
     val activity = LocalContext.current as SettingActivity
     var pos by remember { mutableStateOf(activity.value) }
     val isLight = activity.setting is Light
-    
-    var hours : Int by remember { mutableStateOf(activity.minutes / 60) }
-    var minutes : Int by remember { mutableStateOf(activity.minutes % 60) }
 
-    Column(
+    var hours: Int by remember { mutableStateOf(activity.minutes / 60) }
+    var minutes: Int by remember { mutableStateOf(activity.minutes % 60) }
+
+    LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxSize().padding(16.dp)
     ) {
-        Input(value = pos, onValueChange = { pos = it }, isLight)
-        Spacer(modifier = Modifier.height(16.dp))
-        Slider(
-            value = pos,
-            onValueChange = { pos = it },
-            modifier = Modifier.padding(16.dp)
-        )
+        item {
+            Input(value = pos, onValueChange = { pos = it }, isLight)
+            Slider(
+                value = pos,
+                onValueChange = { pos = it },
+                modifier = Modifier.padding(16.dp)
+            )
+        }
 
         if (isLight) {
-            val timePicker = TimePickerDialog(
-                activity,
-                { _, selectedHour: Int, selectedMinute: Int ->
-                    hours = selectedHour
-                    minutes = selectedMinute
-                }, hours, minutes, false
-            )
+//            val duration = hours.hours + minutes.minutes
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Divider()
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(stringResource(R.string.time))
-            Text("$hours:$minutes")
-            Button(onClick = { timePicker.show() }) {
-                Text(stringResource(R.string.select_time))
+            item {
+                Text(
+                    stringResource(R.string.light_time),
+                    fontSize = 20.sp
+                )
+//            Text(duration.toString(), fontSize = 18.sp, modifier = Modifier.padding(8.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Column(modifier = Modifier.widthIn(max = 120.dp).weight(1f, false)) {
+                        val hoursText =
+                            stringResource(R.string.hours).replaceFirstChar { it.uppercase() }
+                        Text(hoursText)
+                        NumericInput(hours, onValueChange = { hours = it })
+                    }
+                    Spacer(modifier = Modifier.width(32.dp))
+                    Column(modifier = Modifier.widthIn(max = 120.dp).weight(1f, false)) {
+                        val minutesText =
+                            stringResource(R.string.minutes).replaceFirstChar { it.uppercase() }
+                        Text(minutesText)
+                        NumericInput(minutes, onValueChange = { minutes = it })
+                    }
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = {
-            val offset = activity.error
-            val min = toReadable(pos - offset, isLight).toShort()
-            val max = toReadable(pos + offset, isLight).toShort()
-            val newSetting = when(activity.setting){
-                is Light -> Light(min, max, (minutes + hours * 60).toShort())
-                is Temperature -> Temperature(min, max)
-                is Humidity -> Humidity(min, max)
-                is SoilHumidity -> SoilHumidity(min, max)
-                else ->  { Invalid() }
+        item {
+            Button(onClick = {
+                val offset = activity.error
+                val min = toReadable(pos - offset, isLight).toShort()
+                val max = toReadable(pos + offset, isLight).toShort()
+                val newSetting = when (activity.setting) {
+                    is Light -> Light(min, max, (minutes + hours * 60).toShort())
+                    is Temperature -> Temperature(min, max)
+                    is Humidity -> Humidity(min, max)
+                    is SoilHumidity -> SoilHumidity(min, max)
+                    else -> {
+                        Invalid()
+                    }
+                }
+
+                val intent = Intent()
+                intent.putExtra(SettingActivity.EXTRA_SETTING, newSetting)
+                activity.setResult(Activity.RESULT_OK, intent)
+                activity.finish()
+            }) {
+                Text(stringResource(R.string.done))
             }
-            
-            val intent = Intent()
-            intent.putExtra(SettingActivity.EXTRA_SETTING, newSetting)
-            activity.setResult(Activity.RESULT_OK, intent)
-            activity.finish()
-        }) {
-            Text(stringResource(R.string.done))
         }
     }
 }
@@ -158,7 +180,7 @@ private fun Display() {
 @Composable
 private fun Input(value: Float, onValueChange: (Float) -> Unit, exponential: Boolean) {
     val range = if (exponential) 1f..65535f else 0f..100f
-    val default : Int = if (exponential) 1 else 0
+    val default: Int = if (exponential) 1 else 0
     TextField(
         value = "${toReadable(value, exponential)}",
         onValueChange = {
@@ -166,7 +188,22 @@ private fun Input(value: Float, onValueChange: (Float) -> Unit, exponential: Boo
             val reversed = fromReadable(intValue, exponential)
             onValueChange(reversed.coerceIn(range))
         },
+        singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+    )
+}
+
+@Composable
+private fun NumericInput(value: Int, onValueChange: (Int) -> Unit, modifier: Modifier = Modifier) {
+    TextField(
+        value = "$value",
+        onValueChange = {
+            val intValue = it.toIntOrNull() ?: 0
+            onValueChange(intValue.coerceAtLeast(0))
+        },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = modifier
     )
 }
 
@@ -179,7 +216,7 @@ fun toReadable(value: Float, exponential: Boolean): Int {
 }
 
 fun fromReadable(value: Int, exponential: Boolean): Float {
-   // val range = if (exponential) 0f..65535f else 0f..100f
+    // val range = if (exponential) 0f..65535f else 0f..100f
     val inRange = value.toFloat()//.coerceIn(range)
     if (exponential)
         return log(inRange, 65535f).coerceIn(0f..1f)

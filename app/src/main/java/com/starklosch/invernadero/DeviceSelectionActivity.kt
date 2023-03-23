@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -62,7 +63,7 @@ class DeviceSelectionActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
-        viewModel.stop()
+        viewModel.stopScanning()
         viewModel.clear()
     }
 
@@ -75,24 +76,33 @@ class DeviceSelectionActivity : ComponentActivity() {
         val bluetoothAvailability by Bluetooth.availability.collectAsStateWithLifecycle(
             Bluetooth.Availability.Unavailable(null)
         )
-        val isAvailable = bluetoothAvailability is Bluetooth.Availability.Available
+        val bluetoothIsAvailable = bluetoothAvailability is Bluetooth.Availability.Available
 
         val scanStatus by viewModel.scanStatus.collectAsStateWithLifecycle()
-        val refreshing = isAvailable && scanStatus is ScanStatus.Scanning
+        val scanning = bluetoothIsAvailable && scanStatus is ScanStatus.Scanning
 
         val pullRefreshState =
-            rememberPullRefreshState(refreshing, { if (isAvailable) viewModel.start() })
+            rememberPullRefreshState(
+                refreshing = scanning,
+                onRefresh = { if (bluetoothIsAvailable) viewModel.startScanning() })
 
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            topBar = { TopBar() }
+            topBar = {
+                TopBar(
+                    bluetoothIsAvailable,
+                    scanning = scanning,
+                    onScan = { viewModel.startScanning() },
+                    onStop = { viewModel.stopScanning() }
+                )
+            }
         )
         { padding ->
             Box(Modifier.padding(padding).fillMaxSize().pullRefresh(pullRefreshState)) {
                 if (bluetoothPermission.allPermissionsGranted) {
-                    if (isAvailable) {
+                    if (bluetoothIsAvailable) {
                         LaunchedEffect(true) {
-                            viewModel.start()
+                            viewModel.startScanning()
                         }
                         ShowDevices()
                     } else {
@@ -104,7 +114,7 @@ class DeviceSelectionActivity : ComponentActivity() {
                     PermissionRequest(bluetoothPermission)
 
                 PullRefreshIndicator(
-                    refreshing,
+                    scanning,
                     pullRefreshState,
                     Modifier.align(Alignment.TopCenter)
                 )
@@ -128,9 +138,24 @@ class DeviceSelectionActivity : ComponentActivity() {
 }
 
 @Composable
-private fun TopBar() {
-    val context = LocalContext.current
-    TopAppBar(title = { Text(text = context.resources.getString(R.string.devices)) })
+private fun TopBar(
+    bluetoothAvailable: Boolean,
+    scanning: Boolean,
+    onScan: () -> Unit,
+    onStop: () -> Unit
+) {
+    val iconId = if (scanning) R.drawable.stop else R.drawable.search
+    val onClick = if (scanning) onStop else onScan
+    TopAppBar(title = { Text(text = stringResource(R.string.devices)) }, actions = {
+        if (bluetoothAvailable)
+            IconButton(onClick = onClick) {
+                Icon(
+                    painter = painterResource(iconId),
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp).padding(4.dp)
+                )
+            }
+    })
 }
 
 @Composable
@@ -141,7 +166,7 @@ private fun EnableBluetoothButton(modifier: Modifier = Modifier) {
     )
     val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
 
-    LaunchedEffect(true){
+    LaunchedEffect(true) {
         launcher.launch(enableBtIntent)
     }
 
@@ -169,9 +194,8 @@ private fun PermissionRequest(bluetoothPermission: MultiplePermissionsState) {
     ) {
         if (bluetoothPermission.shouldShowRationale)
             Text("Please grant permission")
-        else
-        {
-            for(it in bluetoothPermission.revokedPermissions) {
+        else {
+            for (it in bluetoothPermission.revokedPermissions) {
                 Text("- ${it.permission.split('.').last()}")
             }
             Text("No permission")
