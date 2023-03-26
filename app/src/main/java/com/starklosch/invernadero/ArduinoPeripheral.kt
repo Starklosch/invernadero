@@ -37,8 +37,7 @@ class ArduinoPeripheral(
     val operations = peripheral
         .observe(characteristic).map {
             val firstByte = it.firstOrNull()
-            val operationType = OperationType.fromByte(firstByte)
-            when (operationType){
+            when (OperationType.fromByte(firstByte)) {
                 OperationType.ReadValues -> Response.ValuesResponse(it.copyOfRange(1, it.size))
                 OperationType.ReadSettings -> Response.SettingsResponse(it.copyOfRange(1, it.size))
                 OperationType.ReadInformation -> Response.InformationResponse(

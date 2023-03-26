@@ -1,4 +1,5 @@
 @file:OptIn(ExperimentalMaterial3Api::class, kotlin.time.ExperimentalTime::class)
+@file:Suppress("FunctionName")
 
 package com.starklosch.invernadero
 
@@ -35,6 +36,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.juul.kable.State
 import com.starklosch.invernadero.extensions.parcelable
 import com.starklosch.invernadero.ui.theme.InvernaderoTheme
+import com.starklosch.invernadero.ui.theme.iconModifier
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.seconds
 
@@ -57,9 +59,13 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun Main() {
+private fun Main(viewModel: MainActivityViewModel = viewModel()) {
+    val values by viewModel.values.collectAsStateWithLifecycle()
+    val information by viewModel.information.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+
     Scaffold(
-        topBar = { TopBar() }
+        topBar = { TopBar(information, settings, values) }
     )
     { padding ->
         Box(
@@ -67,7 +73,7 @@ private fun Main() {
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            AppContent()
+            AppContent(viewModel, values, information, settings)
         }
     }
 
@@ -76,12 +82,14 @@ private fun Main() {
 private val valueRefreshTime = 5.seconds
 
 @Composable
-private fun AppContent(viewModel: MainActivityViewModel = viewModel()) {
+private fun AppContent(
+    viewModel: MainActivityViewModel,
+    values: Values,
+    information: Information,
+    settings: Settings
+) {
     val state by viewModel.connectionState.collectAsStateWithLifecycle()
     val deviceName by viewModel.deviceName.collectAsStateWithLifecycle()
-    val values by viewModel.values.collectAsStateWithLifecycle()
-    val information by viewModel.information.collectAsStateWithLifecycle()
-    val settings by viewModel.settings.collectAsStateWithLifecycle()
 
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
@@ -110,7 +118,6 @@ private fun AppContent(viewModel: MainActivityViewModel = viewModel()) {
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-
             ConnectionButton(
                 state = state,
                 onDeviceSelected = { viewModel.connect(it) },
@@ -129,7 +136,7 @@ private fun StateIndicator(state: State, deviceName: String) {
         is State.Disconnecting -> R.string.disconnecting_from
         is State.Disconnected -> R.string.disconnected
     }
-    
+
     val string = stringResource(resourceId)
     val formatted = string.format(name)
     val start = string.indexOf('%')
@@ -137,44 +144,66 @@ private fun StateIndicator(state: State, deviceName: String) {
         Text(formatted)
     } else {
         val spanStyles = listOf(
-            AnnotatedString.Range(SpanStyle(fontWeight = FontWeight.Bold),
+            AnnotatedString.Range(
+                SpanStyle(fontWeight = FontWeight.Bold),
                 start = start,
                 end = start + name.length
-            ))
+            )
+        )
         Text(AnnotatedString(formatted, spanStyles))
     }
 }
 
 @Composable
-private fun Information(connected: Boolean, values: Values, information: Information, settings: Settings, onSettingsChanged: (Settings) -> Unit, modifier: Modifier = Modifier) {
+private fun Information(
+    connected: Boolean,
+    values: Values,
+    information: Information,
+    settings: Settings,
+    onSettingsChanged: (Settings) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val temperature = values.temperature
     val humidity = values.humidity
-    val soilMoisture = values.soilMoisture
+    val soilHumidity = values.soilHumidity
     val light = values.light
 
     val activity = LocalContext.current as Activity
     val launcher =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-                val setting : Setting? = result.data?.parcelable(SettingActivity.EXTRA_SETTING)
-                
+                val setting: Setting? = result.data?.parcelable(SettingActivity.EXTRA_SETTING)
+
                 if (setting == null || setting is Setting.Invalid)
                     return@rememberLauncherForActivityResult
 
                 val newSettings = when (setting) {
                     is Setting.Light ->
-                       settings.copy(minLight = setting.min, maxLight = setting.max, expectedLightMinutes = setting.minutes)
-                    is Setting.Temperature -> settings.copy(minTemperature = setting.min, maxTemperature = setting.max)
-                    is Setting.Humidity -> settings.copy(minHumidity = setting.min, maxHumidity = setting.max)
-                    is Setting.SoilHumidity -> settings.copy(minSoilMoisture = setting.min, maxSoilMoisture = setting.max)
+                        settings.copy(
+                            minLight = setting.min,
+                            maxLight = setting.max,
+                            expectedLightMinutes = setting.minutes
+                        )
+                    is Setting.Temperature -> settings.copy(
+                        minTemperature = setting.min,
+                        maxTemperature = setting.max
+                    )
+                    is Setting.Humidity -> settings.copy(
+                        minHumidity = setting.min,
+                        maxHumidity = setting.max
+                    )
+                    is Setting.SoilHumidity -> settings.copy(
+                        minSoilHumidity = setting.min,
+                        maxSoilHumidity = setting.max
+                    )
                     else -> Settings()
                 }
-                
+
                 onSettingsChanged(newSettings)
             }
         }
 
-    val launch = { setting : Setting, error : Short ->
+    val launch = { setting: Setting, error: Short ->
         if (connected) {
             val intent = Intent(activity, SettingActivity::class.java)
             intent.putExtra(SettingActivity.EXTRA_SETTING, setting)
@@ -196,14 +225,23 @@ private fun Information(connected: Boolean, values: Values, information: Informa
                 content = "${temperature}º",
                 icon = R.drawable.thermometer,
                 fontSize = 28.sp,
-                onClick = { launch(Setting.Temperature(settings.minTemperature, settings.maxTemperature), information.temperatureError) }
+                onClick = {
+                    launch(
+                        settings.temperature, information.temperatureError
+                    )
+                }
             )
             Sensor(
                 modifier = Modifier.fillMaxWidth(),
                 content = "${humidity}%",
                 icon = R.drawable.water_droplet,
                 fontSize = 28.sp,
-                onClick = { launch(Setting.Humidity(settings.minHumidity, settings.maxHumidity), information.humidityError) }
+                onClick = {
+                    launch(
+                        settings.humidity,
+                        information.humidityError
+                    )
+                }
             )
         }
         Column(
@@ -212,17 +250,25 @@ private fun Information(connected: Boolean, values: Values, information: Informa
         ) {
             Sensor(
                 modifier = Modifier.fillMaxWidth(),
-                content = "${soilMoisture}%",
-                icon = R.drawable.moisture_soil,
+                content = "${soilHumidity}%",
+                icon = R.drawable.soil_humidity,
                 fontSize = 28.sp,
-                onClick = { launch(Setting.SoilHumidity(settings.minSoilMoisture, settings.maxSoilMoisture), information.soilMoistureError) }
+                onClick = {
+                    launch(
+                        settings.soilHumidity, information.soilHumidityError
+                    )
+                }
             )
             Sensor(
                 modifier = Modifier.fillMaxWidth(),
                 content = Measurement(light.toInt(), "lx").format(),
                 icon = R.drawable.light,
                 fontSize = 28.sp,
-                onClick = { launch(Setting.Light(settings.minLight, settings.maxLight, settings.expectedLightMinutes), information.lightError) }
+                onClick = {
+                    launch(
+                        settings.light, information.lightError
+                    )
+                }
             )
         }
     }
@@ -305,7 +351,19 @@ private fun Sensor(
 }
 
 @Composable
-private fun TopBar() {
+private fun TopBar(information: Information, settings: Settings, values: Values) {
     val context = LocalContext.current
-    TopAppBar(title = { Text(text = context.resources.getString(R.string.app_name)) })
+    TopAppBar(title = { Text(text = stringResource(R.string.app_name)) }, actions = {
+        if (BuildConfig.DEBUG) {
+            IconButton(onClick = {
+                val intent = Intent(context, DebugActivity::class.java)
+                intent.putExtra(DebugActivity.EXTRA_INFO, information)
+                intent.putExtra(DebugActivity.EXTRA_SETTINGS, settings)
+                intent.putExtra(DebugActivity.EXTRA_VALUES, values)
+                context.startActivity(intent)
+            }) {
+                Icon(painterResource(R.drawable.bug), contentDescription = "Debug", modifier = iconModifier)
+            }
+        }
+    })
 }

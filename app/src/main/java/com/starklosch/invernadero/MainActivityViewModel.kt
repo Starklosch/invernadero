@@ -48,7 +48,7 @@ class MainActivityViewModel : ViewModel() {
 
     fun updateValues() {
         viewModelScope.launch {
-            device.value?.request(ValuesRequest())
+            device.value?.request(ValuesRequest)
             Log.d("FLOW", "Updating values")
         }
     }
@@ -81,8 +81,8 @@ class MainActivityViewModel : ViewModel() {
         launch {
             try {
                 peripheral.connect()
-                peripheral.request(InformationRequest())
-                peripheral.request(SettingsRequest())
+                peripheral.request(InformationRequest)
+                peripheral.request(SettingsRequest)
             } catch (_: ConnectionLostException) {
 
             }

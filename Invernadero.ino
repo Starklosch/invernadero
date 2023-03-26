@@ -222,17 +222,11 @@ void bluetoothControl(){
         return;
     
     char data = HM10.read();
-    if (data == 'V') { // V = Leer valores
-        readValues('V');
-    }
-    else if (data == 'S'){ // S = Leer configuración
-        readSettings('S');
-    }
-    else if (data == 'W'){ // W = Escribir configuración
-        setSettings();
-    }
-    else if (data == 'I'){ // I = Leer constantes
-        readInformation('I');
+    switch (data){
+        case 'V': readValues('V'); break; // Leer valores
+        case 'S': readSettings('S'); break; // Leer configuración
+        case 'W': setSettings(); break; // Escribir configuración
+        case 'I': readInformation('I'); break; // Leer constantes
     }
 }
 

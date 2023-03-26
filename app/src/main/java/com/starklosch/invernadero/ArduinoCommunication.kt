@@ -3,10 +3,12 @@ package com.starklosch.invernadero
 import java.nio.ByteBuffer
 
 enum class OperationType(val id: Byte) {
-    ReadValues('V'.code.toByte()),
-    ReadSettings('S'.code.toByte()),
-    ReadInformation('I'.code.toByte()),
-    SetSettings('W'.code.toByte());
+    ReadValues('V'),
+    ReadSettings('S'),
+    ReadInformation('I'),
+    SetSettings('W');
+
+    constructor (char: Char) : this(char.code.toByte())
 
     companion object {
         fun fromByte(value: Byte?) = OperationType.values().firstOrNull { it.id == value }
@@ -54,8 +56,8 @@ sealed class Request(private val operationType: OperationType, private val data:
         return buffer.array()
     }
 
-    class ValuesRequest : Request(OperationType.ReadValues)
-    class InformationRequest : Request(OperationType.ReadInformation)
-    class SettingsRequest : Request(OperationType.ReadSettings)
+    object ValuesRequest : Request(OperationType.ReadValues)
+    object InformationRequest : Request(OperationType.ReadInformation)
+    object SettingsRequest : Request(OperationType.ReadSettings)
     class SetSettingsRequest(settings: Settings) : Request(OperationType.SetSettings, settings.toByteArray())
 }

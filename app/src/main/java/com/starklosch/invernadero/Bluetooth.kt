@@ -4,17 +4,16 @@ import android.Manifest
 import android.os.Build
 
 @Suppress("InlinedApi")
-val latest = listOf(
+private val latest = listOf(
     Manifest.permission.BLUETOOTH_CONNECT,
     Manifest.permission.BLUETOOTH_SCAN
 )
 
-val legacy = listOf(
+private val legacy = listOf(
     Manifest.permission.ACCESS_COARSE_LOCATION
 )
 
-val apis29and30 = listOf(
-
+private val apis29and30 = listOf(
     Manifest.permission.ACCESS_FINE_LOCATION
 )
 

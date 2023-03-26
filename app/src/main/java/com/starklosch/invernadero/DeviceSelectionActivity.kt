@@ -41,6 +41,7 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.juul.kable.Advertisement
 import com.juul.kable.Bluetooth
 import com.starklosch.invernadero.ui.theme.InvernaderoTheme
+import com.starklosch.invernadero.ui.theme.iconModifier
 
 class DeviceSelectionActivity : ComponentActivity() {
     private val viewModel by viewModels<DeviceSelectionViewModel>()
@@ -152,7 +153,7 @@ private fun TopBar(
                 Icon(
                     painter = painterResource(iconId),
                     contentDescription = null,
-                    modifier = Modifier.size(32.dp).padding(4.dp)
+                    modifier = iconModifier
                 )
             }
     })

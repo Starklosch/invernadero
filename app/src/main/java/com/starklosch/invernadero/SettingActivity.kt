@@ -1,4 +1,5 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
+@file:Suppress("FunctionName")
 
 package com.starklosch.invernadero
 
@@ -9,13 +10,17 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.*
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,7 +50,6 @@ class SettingActivity : ComponentActivity() {
             val min = fromReadable(it.min.toUShort(), isLight)
             val max = fromReadable(it.max.toUShort(), isLight)
             value = (min + max) / 2f
-            //   Toast.makeText(this, "$min (${it.min}) - $max (${it.max}): $value", Toast.LENGTH_SHORT).show()
         }
         intent?.getShortExtra(EXTRA_ERROR, 0)?.let {
             error = fromReadable(it, setting is Light)
@@ -96,6 +100,7 @@ private fun TopBar() {
 @Composable
 private fun Display() {
     val activity = LocalContext.current as SettingActivity
+    val focusManager = LocalFocusManager.current
     var pos by remember { mutableStateOf(activity.value) }
     val isLight = activity.setting is Light
 
@@ -107,7 +112,15 @@ private fun Display() {
         modifier = Modifier.fillMaxSize().padding(16.dp)
     ) {
         item {
-            Input(value = pos, onValueChange = { pos = it }, isLight)
+            NumericInput(
+                value = toReadable(pos, isLight),
+                onValueChange = { pos = fromReadable(it, isLight) },
+                range = if (isLight) 1..65535 else 0..100,
+                imeAction = ImeAction.Done,
+                keyboardActions = KeyboardActions(onDone = {
+                    focusManager.clearFocus()
+                })
+            )
             Slider(
                 value = pos,
                 onValueChange = { pos = it },
@@ -131,21 +144,37 @@ private fun Display() {
 //            Text(duration.toString(), fontSize = 18.sp, modifier = Modifier.padding(8.dp))
 
                 Row(
-                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Column(modifier = Modifier.widthIn(max = 120.dp).weight(1f, false)) {
                         val hoursText =
-                            stringResource(R.string.hours).replaceFirstChar { it.uppercase() }
+                            stringResource(R.string.hours).capitalize()
                         Text(hoursText)
-                        NumericInput(hours, onValueChange = { hours = it })
+                        NumericInput(
+                            value = hours,
+                            onValueChange = { hours = it },
+                            range = 0..Int.MAX_VALUE,
+                            imeAction = ImeAction.Next,
+                            keyboardActions = KeyboardActions(onNext = {
+                                focusManager.moveFocus(FocusDirection.Right)
+                            })
+                        )
                     }
                     Spacer(modifier = Modifier.width(32.dp))
                     Column(modifier = Modifier.widthIn(max = 120.dp).weight(1f, false)) {
                         val minutesText =
-                            stringResource(R.string.minutes).replaceFirstChar { it.uppercase() }
+                            stringResource(R.string.minutes).capitalize()
                         Text(minutesText)
-                        NumericInput(minutes, onValueChange = { minutes = it })
+                        NumericInput(
+                            value = minutes,
+                            onValueChange = { minutes = it },
+                            range = 0..Int.MAX_VALUE,
+                            imeAction = ImeAction.Done,
+                            keyboardActions = KeyboardActions(onDone = {
+                                focusManager.clearFocus()
+                            })
+                        )
                     }
                 }
             }
@@ -161,9 +190,7 @@ private fun Display() {
                     is Temperature -> Temperature(min, max)
                     is Humidity -> Humidity(min, max)
                     is SoilHumidity -> SoilHumidity(min, max)
-                    else -> {
-                        Invalid()
-                    }
+                    else -> Invalid
                 }
 
                 val intent = Intent()
@@ -178,31 +205,28 @@ private fun Display() {
 }
 
 @Composable
-private fun Input(value: Float, onValueChange: (Float) -> Unit, exponential: Boolean) {
-    val range = if (exponential) 1f..65535f else 0f..100f
-    val default: Int = if (exponential) 1 else 0
-    TextField(
-        value = "${toReadable(value, exponential)}",
-        onValueChange = {
-            val intValue = it.toIntOrNull() ?: default
-            val reversed = fromReadable(intValue, exponential)
-            onValueChange(reversed.coerceIn(range))
-        },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-    )
-}
-
-@Composable
-private fun NumericInput(value: Int, onValueChange: (Int) -> Unit, modifier: Modifier = Modifier) {
+private fun NumericInput(
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    imeAction: ImeAction = ImeAction.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    default: Int = 0,
+    range: ClosedRange<Int> = Int.MIN_VALUE..Int.MAX_VALUE
+) {
     TextField(
         value = "$value",
         onValueChange = {
-            val intValue = it.toIntOrNull() ?: 0
-            onValueChange(intValue.coerceAtLeast(0))
+            val intValue = it.toIntOrNull() ?: default
+            val inRange = intValue.coerceIn(range)
+            onValueChange(inRange)
         },
         singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Number,
+            imeAction = imeAction
+        ),
+        keyboardActions = keyboardActions,
         modifier = modifier
     )
 }
@@ -216,8 +240,7 @@ fun toReadable(value: Float, exponential: Boolean): Int {
 }
 
 fun fromReadable(value: Int, exponential: Boolean): Float {
-    // val range = if (exponential) 0f..65535f else 0f..100f
-    val inRange = value.toFloat()//.coerceIn(range)
+    val inRange = value.toFloat()
     if (exponential)
         return log(inRange, 65535f).coerceIn(0f..1f)
     return value.div(100f).coerceIn(0f..1f)
